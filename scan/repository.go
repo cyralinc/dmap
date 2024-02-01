@@ -1,7 +1,9 @@
 package scan
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -9,45 +11,25 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/redshift/types"
 )
 
-type RepoCategory string
+type RepoType string
 
 const (
-	// RepoCategory
-	RepoTypeRDS      RepoCategory = "TYPE_RDS"
-	RepoTypeRedshift RepoCategory = "TYPE_REDSHIFT"
-	RepoTypeDynamoDB RepoCategory = "TYPE_DYNAMODB"
-	// Common property keys
-	VersionKey          = "version"
-	EndpointKey         = "endpoint"
-	AddressKey          = "address"
-	PortKey             = "port"
-	AllocatedSizeKey    = "allocatedSize"
-	PublicAccessibleKey = "publicAccessible"
+	// Repo types
+	RepoTypeRDS      RepoType = "TYPE_RDS"
+	RepoTypeRedshift RepoType = "TYPE_REDSHIFT"
+	RepoTypeDynamoDB RepoType = "TYPE_DYNAMODB"
 )
 
 type Repository struct {
 	Name       string
 	CreatedAt  time.Time
 	Tags       []string
-	Category   RepoCategory
+	Type       RepoType
 	Properties map[string]any
 }
 
 func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
-	properties := map[string]any{
-		VersionKey:          aws.ToString(cluster.ClusterVersion),
-		AllocatedSizeKey:    aws.ToInt64(cluster.TotalStorageCapacityInMegaBytes),
-		PublicAccessibleKey: aws.ToBool(cluster.PubliclyAccessible),
-		EndpointKey:         map[string]any{},
-	}
-	if cluster.Endpoint != nil {
-		properties[EndpointKey] = map[string]any{
-			AddressKey: aws.ToString(cluster.Endpoint.Address),
-			PortKey:    aws.ToInt32(cluster.Endpoint.Port),
-		}
-	}
-
-	tags := make([]string, len(cluster.Tags))
+	tags := make([]string, 0, len(cluster.Tags))
 	for _, tag := range cluster.Tags {
 		tags = append(tags, fmt.Sprintf(
 			"%s:%s",
@@ -56,10 +38,18 @@ func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
 		))
 	}
 
+	bytes, err := json.Marshal(cluster)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+	var properties map[string]any
+	json.Unmarshal(bytes, &properties)
+	// TODO: delete map entries corresponding to high-level fields.
+
 	repo := Repository{
 		Name:       aws.ToString(cluster.ClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Category:   RepoTypeRedshift,
+		Type:       RepoTypeRedshift,
 		Tags:       tags,
 		Properties: properties,
 	}

@@ -25,27 +25,34 @@ type awsClient struct {
 
 func newAWSClient(
 	ctx context.Context,
+	assumeRole *AWSAssumeRoleConfig,
 ) (*awsClient, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &awsClient{
+	c := &awsClient{
 		config: cfg,
-	}, nil
+	}
+	if assumeRole != nil {
+		if err := c.assumeRole(ctx, *assumeRole); err != nil {
+			return nil, fmt.Errorf("error assuming IAM role: %w", err)
+		}
+	}
+	c.initializeServiceClients()
+	return c, nil
 }
 
-func (c *awsClient) AssumeRole(
+func (c *awsClient) assumeRole(
 	ctx context.Context,
-	roleARN string,
-	externalID string,
+	assumeRole AWSAssumeRoleConfig,
 ) error {
 	stsClient := sts.NewFromConfig(c.config)
 	credsProvider := stscreds.NewAssumeRoleProvider(
 		stsClient,
-		roleARN,
+		assumeRole.IAMRoleARN,
 		func(o *stscreds.AssumeRoleOptions) {
-			o.ExternalID = &externalID
+			o.ExternalID = &assumeRole.ExternalID
 		},
 	)
 	c.config.Credentials = aws.NewCredentialsCache(credsProvider)

@@ -30,15 +30,6 @@ func NewScanner(ctx context.Context, config Config) (*Scanner, error) {
 	return s, nil
 }
 
-func (s *Scanner) initAWSClient(ctx context.Context) error {
-	awsClient, err := newAWSClient(ctx, s.config.AWS.AssumeRole)
-	if err != nil {
-		return err
-	}
-	s.awsClient = awsClient
-	return nil
-}
-
 func (s *Scanner) ScanRepositories(
 	ctx context.Context,
 ) ([]Repository, error) {
@@ -48,6 +39,15 @@ func (s *Scanner) ScanRepositories(
 		repositories = append(repositories, awsRepos...)
 	}
 	return repositories, s.scanErrors
+}
+
+func (s *Scanner) initAWSClient(ctx context.Context) error {
+	awsClient, err := newAWSClient(ctx, s.config.AWS.AssumeRole)
+	if err != nil {
+		return err
+	}
+	s.awsClient = awsClient
+	return nil
 }
 
 func (s *Scanner) scanAWSRepositories(ctx context.Context) []Repository {
@@ -82,14 +82,22 @@ func (s *Scanner) scanAWSRepositories(ctx context.Context) []Repository {
 
 		for err := range errorChan {
 			if err != nil {
-				s.scanErrors = fmt.Errorf(
-					"%w: %w",
-					s.scanErrors, err,
-				)
+				s.appendError(err)
 			}
 		}
 	}
 	return repositories
+}
+
+func (s *Scanner) appendError(err error) {
+	if s.scanErrors == nil {
+		s.scanErrors = err
+	} else {
+		s.scanErrors = fmt.Errorf(
+			"%w: %w",
+			s.scanErrors, err,
+		)
+	}
 }
 
 func scanRedshiftRepositories(

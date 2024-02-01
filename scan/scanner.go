@@ -3,103 +3,204 @@ package scan
 import (
 	"context"
 	"fmt"
+	"sync"
 )
 
 type Scanner struct {
 	config    Config
-	AWSClient *awsClient
+	awsClient *awsClient
+	// Wrap all the errors that happen during the scan.
+	scanErrors error
 }
 
-func NewScanner(ctx context.Context, cfg Config) (*Scanner, error) {
-	scanner := &Scanner{
-		config: cfg,
+func NewScanner(ctx context.Context, config Config) (*Scanner, error) {
+	if err := config.validateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
-	if scanner.config.AWS != nil {
-		scanner.initAWSClient(ctx)
+	s := &Scanner{
+		config: config,
+	}
+	if s.config.isAWSConfigured() {
+		if err := s.initAWSClient(ctx); err != nil {
+			return nil, fmt.Errorf("error initializing AWS client: %w", err)
+		}
 	} else {
 		return nil, fmt.Errorf("AWS configuration must be specified")
 	}
-	return scanner, nil
+	return s, nil
 }
 
 func (s *Scanner) initAWSClient(ctx context.Context) error {
-	awsClient, err := newAWSClient(ctx)
+	awsClient, err := newAWSClient(ctx, s.config.AWS.AssumeRole)
 	if err != nil {
 		return err
 	}
-	s.AWSClient = awsClient
+	s.awsClient = awsClient
 	return nil
 }
 
 func (s *Scanner) ScanRepositories(
 	ctx context.Context,
 ) ([]Repository, error) {
-	var repositories []Repository
-	// Wrap all the errors that happen during the scan.
-	var scanErrors error
+	repositories := []Repository{}
+	if s.config.isAWSConfigured() {
+		awsRepos := s.scanAWSRepositories(ctx)
+		repositories = append(repositories, awsRepos...)
+	}
+	return repositories, s.scanErrors
+}
+
+func (s *Scanner) scanAWSRepositories(ctx context.Context) []Repository {
+	repositories := []Repository{}
 	for _, region := range s.config.AWS.Regions {
-		s.AWSClient.setRegion(region)
+		s.awsClient.setRegion(region)
 
-		redshiftClusters, err := s.AWSClient.getRedshiftClusters(ctx)
-		if err != nil {
-			scanErrors = fmt.Errorf(
-				"%w: error scanning Redshift clusters: %w",
-				scanErrors, err,
-			)
-		}
-		for _, cluster := range redshiftClusters {
-			repositories = append(
-				repositories,
-				newRepositoryFromRedshiftCluster(cluster),
-			)
-		}
+		subCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		numRoutines := 4
+		reposChan := make(chan []Repository, numRoutines)
+		errorChan := make(chan error, numRoutines)
+		var wg sync.WaitGroup
+		wg.Add(numRoutines)
 
-		dynamodbTables, err := s.AWSClient.getDynamoDBTables(ctx)
-		if err != nil {
-			scanErrors = fmt.Errorf(
-				"%w: error scanning dynamodb tables: %w",
-				scanErrors, err,
-			)
-		}
-		for _, table := range dynamodbTables {
-			repositories = append(
-				repositories,
-				newRepositoryFromDynamoDBTable(table),
-			)
+		go scanRDSClusterRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+
+		go scanRDSInstanceRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+
+		go scanRedshiftRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+
+		go scanDynamoDBRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+
+		wg.Wait()
+
+		close(reposChan)
+		close(errorChan)
+
+		for repos := range reposChan {
+			repositories = append(repositories, repos...)
 		}
 
-		rdsClusters, err := s.AWSClient.getRDSClusters(ctx)
-		if err != nil {
-			scanErrors = fmt.Errorf(
-				"%w: error scanning RDS clusters: %w",
-				scanErrors, err,
-			)
-		}
-		for _, cluster := range rdsClusters {
-			repositories = append(
-				repositories,
-				newRepositoryFromRDSCluster(cluster),
-			)
-		}
-
-		rdsInstances, err := s.AWSClient.getRDSInstances(ctx)
-		if err != nil {
-			scanErrors = fmt.Errorf(
-				"%w: error scanning RDS instances: %w",
-				scanErrors, err,
-			)
-		}
-		for _, instance := range rdsInstances {
-			// Skip cluster instances, since they were already added when retrieving
-			// the RDS clusters.
-			if instance.DBClusterIdentifier != nil {
-				continue
+		for err := range errorChan {
+			if err != nil {
+				s.scanErrors = fmt.Errorf(
+					"%w: %w",
+					s.scanErrors, err,
+				)
 			}
-			repositories = append(
-				repositories,
-				newRepositoryFromRDSInstance(instance),
-			)
 		}
 	}
-	return repositories, scanErrors
+	return repositories
+}
+
+func scanRedshiftRepositories(
+	ctx context.Context,
+	awsClient *awsClient,
+	wg *sync.WaitGroup,
+	reposChannel chan<- []Repository,
+	errorsChan chan<- error,
+) {
+	defer wg.Done()
+	repositories := []Repository{}
+	var errors error
+	redshiftClusters, err := awsClient.getRedshiftClusters(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning Redshift clusters: %w",
+			err,
+		)
+	}
+	for _, cluster := range redshiftClusters {
+		repositories = append(
+			repositories,
+			newRepositoryFromRedshiftCluster(cluster),
+		)
+	}
+	reposChannel <- repositories
+	errorsChan <- errors
+}
+
+func scanDynamoDBRepositories(
+	ctx context.Context,
+	awsClient *awsClient,
+	wg *sync.WaitGroup,
+	reposChannel chan<- []Repository,
+	errorsChan chan<- error,
+) {
+	defer wg.Done()
+	repositories := []Repository{}
+	var errors error
+	dynamodbTables, err := awsClient.getDynamoDBTables(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning DynamoDB tables: %w",
+			err,
+		)
+	}
+	for _, table := range dynamodbTables {
+		repositories = append(
+			repositories,
+			newRepositoryFromDynamoDBTable(table),
+		)
+	}
+	reposChannel <- repositories
+	errorsChan <- errors
+}
+
+func scanRDSClusterRepositories(
+	ctx context.Context,
+	awsClient *awsClient,
+	wg *sync.WaitGroup,
+	reposChannel chan<- []Repository,
+	errorsChan chan<- error,
+) {
+	defer wg.Done()
+	repositories := []Repository{}
+	var errors error
+	rdsClusters, err := awsClient.getRDSClusters(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning RDS clusters: %w",
+			err,
+		)
+	}
+	for _, cluster := range rdsClusters {
+		repositories = append(
+			repositories,
+			newRepositoryFromRDSCluster(cluster),
+		)
+	}
+	reposChannel <- repositories
+	errorsChan <- errors
+}
+
+func scanRDSInstanceRepositories(
+	ctx context.Context,
+	awsClient *awsClient,
+	wg *sync.WaitGroup,
+	reposChannel chan<- []Repository,
+	errorsChan chan<- error,
+) {
+	defer wg.Done()
+	repositories := []Repository{}
+	var errors error
+	rdsInstances, err := awsClient.getRDSInstances(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning RDS instances: %w",
+			err,
+		)
+	}
+	for _, instance := range rdsInstances {
+		// Skip cluster instances, since they were already added when retrieving
+		// the RDS clusters.
+		if instance.DBClusterIdentifier != nil {
+			continue
+		}
+		repositories = append(
+			repositories,
+			newRepositoryFromRDSInstance(instance),
+		)
+	}
+	reposChannel <- repositories
+	errorsChan <- errors
 }

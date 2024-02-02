@@ -243,7 +243,8 @@ func (c *AWSScanner) getDynamoDBTables(
 	}
 
 	tables := make([]dynamoDBTable, 0, len(tableNames))
-	for _, tableName := range tableNames {
+	for i := range tableNames {
+		tableName := tableNames[i]
 		describeTableOutput, err := c.dynamodbClient.DescribeTable(
 			ctx,
 			&dynamodb.DescribeTableInput{

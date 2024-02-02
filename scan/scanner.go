@@ -59,28 +59,28 @@ func (s *Scanner) scanAWSRepositories(ctx context.Context) []Repository {
 		defer cancel()
 		numRoutines := 4
 		reposChan := make(chan []Repository, numRoutines)
-		errorChan := make(chan error, numRoutines)
+		errorsChan := make(chan error, numRoutines)
 		var wg sync.WaitGroup
 		wg.Add(numRoutines)
 
-		go scanRDSClusterRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+		go scanRDSClusterRepositories(subCtx, s.awsClient, &wg, reposChan, errorsChan)
 
-		go scanRDSInstanceRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+		go scanRDSInstanceRepositories(subCtx, s.awsClient, &wg, reposChan, errorsChan)
 
-		go scanRedshiftRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+		go scanRedshiftRepositories(subCtx, s.awsClient, &wg, reposChan, errorsChan)
 
-		go scanDynamoDBRepositories(subCtx, s.awsClient, &wg, reposChan, errorChan)
+		go scanDynamoDBRepositories(subCtx, s.awsClient, &wg, reposChan, errorsChan)
 
 		wg.Wait()
 
 		close(reposChan)
-		close(errorChan)
+		close(errorsChan)
 
 		for repos := range reposChan {
 			repositories = append(repositories, repos...)
 		}
 
-		for err := range errorChan {
+		for err := range errorsChan {
 			if err != nil {
 				s.appendError(err)
 			}

@@ -71,43 +71,85 @@ func (c *awsClient) setRegion(region string) {
 func (c *awsClient) getRDSClusters(
 	ctx context.Context,
 ) ([]rdsType.DBCluster, error) {
-	// TODO: Check for next page to see if there are remaining items
-	output, err := c.rdsClient.DescribeDBClusters(
-		ctx,
-		&rds.DescribeDBClustersInput{},
-	)
-	if err != nil {
-		return nil, err
+	var clusters []rdsType.DBCluster
+	// Used for pagination
+	var marker *string
+	for {
+		output, err := c.rdsClient.DescribeDBClusters(
+			ctx,
+			&rds.DescribeDBClustersInput{
+				Marker: marker,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		clusters = append(clusters, output.DBClusters...)
+
+		if output.Marker == nil {
+			break
+		} else {
+			marker = output.Marker
+		}
 	}
-	return output.DBClusters, nil
+	return clusters, nil
 }
 
 func (c *awsClient) getRDSInstances(
 	ctx context.Context,
 ) ([]rdsType.DBInstance, error) {
-	// TODO: Check for next page to see if there are remaining items
-	output, err := c.rdsClient.DescribeDBInstances(
-		ctx,
-		&rds.DescribeDBInstancesInput{},
-	)
-	if err != nil {
-		return nil, err
+	var instances []rdsType.DBInstance
+	// Used for pagination
+	var marker *string
+	for {
+		output, err := c.rdsClient.DescribeDBInstances(
+			ctx,
+			&rds.DescribeDBInstancesInput{
+				Marker: marker,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		instances = append(instances, output.DBInstances...)
+
+		if output.Marker == nil {
+			break
+		} else {
+			marker = output.Marker
+		}
 	}
-	return output.DBInstances, nil
+	return instances, nil
 }
 
 func (c *awsClient) getRedshiftClusters(
 	ctx context.Context,
 ) ([]rsTypes.Cluster, error) {
-	// TODO: Check for next page to see if there are remaining items
-	output, err := c.redshiftClient.DescribeClusters(
-		ctx,
-		&redshift.DescribeClustersInput{},
-	)
-	if err != nil {
-		return nil, err
+	var clusters []rsTypes.Cluster
+	// Used for pagination
+	var marker *string
+	for {
+		output, err := c.redshiftClient.DescribeClusters(
+			ctx,
+			&redshift.DescribeClustersInput{
+				Marker: marker,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		clusters = append(clusters, output.Clusters...)
+
+		if output.Marker == nil {
+			break
+		} else {
+			marker = output.Marker
+		}
 	}
-	return output.Clusters, nil
+	return clusters, nil
 }
 
 type dynamoDBTable struct {
@@ -118,16 +160,31 @@ type dynamoDBTable struct {
 func (c *awsClient) getDynamoDBTables(
 	ctx context.Context,
 ) ([]dynamoDBTable, error) {
-	// TODO: Check for next page to see if there are remaining items
-	output, err := c.dynamodbClient.ListTables(
-		ctx,
-		&dynamodb.ListTablesInput{},
-	)
-	if err != nil {
-		return nil, err
+	var tableNames []string
+	// Used for pagination
+	var exclusiveStartTableName *string
+	for {
+		output, err := c.dynamodbClient.ListTables(
+			ctx,
+			&dynamodb.ListTablesInput{
+				ExclusiveStartTableName: exclusiveStartTableName,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		tableNames = append(tableNames, output.TableNames...)
+
+		if output.LastEvaluatedTableName == nil {
+			break
+		} else {
+			exclusiveStartTableName = output.LastEvaluatedTableName
+		}
 	}
-	tables := make([]dynamoDBTable, 0, len(output.TableNames))
-	for _, tableName := range output.TableNames {
+
+	tables := make([]dynamoDBTable, 0, len(tableNames))
+	for _, tableName := range tableNames {
 		describeTableOutput, err := c.dynamodbClient.DescribeTable(
 			ctx,
 			&dynamodb.DescribeTableInput{
@@ -138,19 +195,34 @@ func (c *awsClient) getDynamoDBTables(
 			return nil, err
 		}
 		table := describeTableOutput.Table
-		// TODO: Check for next page to see if there are remaining items
-		tagsOutput, err := c.dynamodbClient.ListTagsOfResource(
-			ctx,
-			&dynamodb.ListTagsOfResourceInput{
-				ResourceArn: table.TableArn,
-			},
-		)
-		if err != nil {
-			return nil, err
+
+		var tableTags []ddbTypes.Tag
+		// Used for pagination
+		var nextToken *string
+		for {
+			tagsOutput, err := c.dynamodbClient.ListTagsOfResource(
+				ctx,
+				&dynamodb.ListTagsOfResourceInput{
+					ResourceArn: table.TableArn,
+					NextToken:   nextToken,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			tableTags = append(tableTags, tagsOutput.Tags...)
+
+			if tagsOutput.NextToken == nil {
+				break
+			} else {
+				nextToken = tagsOutput.NextToken
+			}
 		}
+
 		tables = append(tables, dynamoDBTable{
 			Table: table,
-			Tags:  tagsOutput.Tags,
+			Tags:  tableTags,
 		})
 	}
 	return tables, nil

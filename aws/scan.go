@@ -3,73 +3,19 @@ package aws
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/cyralinc/dmap/model"
 )
 
-func scanRedshiftRepositories(
+type ScanFunction func(
 	ctx context.Context,
 	scanner *AWSScanner,
-	wg *sync.WaitGroup,
-	reposChannel chan<- []model.Repository,
-	errorsChan chan<- error,
-) {
-	defer wg.Done()
-	repositories := []model.Repository{}
-	var errors error
-	redshiftClusters, err := scanner.getRedshiftClusters(ctx)
-	if err != nil {
-		errors = fmt.Errorf(
-			"error scanning Redshift clusters: %w",
-			err,
-		)
-	}
-	for _, cluster := range redshiftClusters {
-		repositories = append(
-			repositories,
-			newRepositoryFromRedshiftCluster(cluster),
-		)
-	}
-	reposChannel <- repositories
-	errorsChan <- errors
-}
-
-func scanDynamoDBRepositories(
-	ctx context.Context,
-	scanner *AWSScanner,
-	wg *sync.WaitGroup,
-	reposChannel chan<- []model.Repository,
-	errorsChan chan<- error,
-) {
-	defer wg.Done()
-	repositories := []model.Repository{}
-	var errors error
-	dynamodbTables, err := scanner.getDynamoDBTables(ctx)
-	if err != nil {
-		errors = fmt.Errorf(
-			"error scanning DynamoDB tables: %w",
-			err,
-		)
-	}
-	for _, table := range dynamodbTables {
-		repositories = append(
-			repositories,
-			newRepositoryFromDynamoDBTable(table),
-		)
-	}
-	reposChannel <- repositories
-	errorsChan <- errors
-}
+) ([]model.Repository, error)
 
 func scanRDSClusterRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-	wg *sync.WaitGroup,
-	reposChannel chan<- []model.Repository,
-	errorsChan chan<- error,
-) {
-	defer wg.Done()
+) ([]model.Repository, error) {
 	repositories := []model.Repository{}
 	var errors error
 	rdsClusters, err := scanner.getRDSClusters(ctx)
@@ -85,18 +31,13 @@ func scanRDSClusterRepositories(
 			newRepositoryFromRDSCluster(cluster),
 		)
 	}
-	reposChannel <- repositories
-	errorsChan <- errors
+	return repositories, errors
 }
 
 func scanRDSInstanceRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-	wg *sync.WaitGroup,
-	reposChannel chan<- []model.Repository,
-	errorsChan chan<- error,
-) {
-	defer wg.Done()
+) ([]model.Repository, error) {
 	repositories := []model.Repository{}
 	var errors error
 	rdsInstances, err := scanner.getRDSInstances(ctx)
@@ -117,6 +58,49 @@ func scanRDSInstanceRepositories(
 			newRepositoryFromRDSInstance(instance),
 		)
 	}
-	reposChannel <- repositories
-	errorsChan <- errors
+	return repositories, errors
+}
+
+func scanRedshiftRepositories(
+	ctx context.Context,
+	scanner *AWSScanner,
+) ([]model.Repository, error) {
+	repositories := []model.Repository{}
+	var errors error
+	redshiftClusters, err := scanner.getRedshiftClusters(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning Redshift clusters: %w",
+			err,
+		)
+	}
+	for _, cluster := range redshiftClusters {
+		repositories = append(
+			repositories,
+			newRepositoryFromRedshiftCluster(cluster),
+		)
+	}
+	return repositories, errors
+}
+
+func scanDynamoDBRepositories(
+	ctx context.Context,
+	scanner *AWSScanner,
+) ([]model.Repository, error) {
+	repositories := []model.Repository{}
+	var errors error
+	dynamodbTables, err := scanner.getDynamoDBTables(ctx)
+	if err != nil {
+		errors = fmt.Errorf(
+			"error scanning DynamoDB tables: %w",
+			err,
+		)
+	}
+	for _, table := range dynamodbTables {
+		repositories = append(
+			repositories,
+			newRepositoryFromDynamoDBTable(table),
+		)
+	}
+	return repositories, errors
 }

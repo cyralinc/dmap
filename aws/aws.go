@@ -57,21 +57,29 @@ func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 	for _, region := range s.scanConfig.Regions {
 		s.setRegion(region)
 
+		scanFunctions := []ScanFunction{
+			scanRDSClusterRepositories,
+			scanRDSInstanceRepositories,
+			scanRedshiftRepositories,
+			scanDynamoDBRepositories,
+		}
+
 		subCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		numRoutines := 4
+		numRoutines := len(scanFunctions)
 		reposChan := make(chan []model.Repository, numRoutines)
 		errorsChan := make(chan error, numRoutines)
 		var wg sync.WaitGroup
 		wg.Add(numRoutines)
 
-		go scanRDSClusterRepositories(subCtx, s, &wg, reposChan, errorsChan)
-
-		go scanRDSInstanceRepositories(subCtx, s, &wg, reposChan, errorsChan)
-
-		go scanRedshiftRepositories(subCtx, s, &wg, reposChan, errorsChan)
-
-		go scanDynamoDBRepositories(subCtx, s, &wg, reposChan, errorsChan)
+		for i := range scanFunctions {
+			go func(scanFunc ScanFunction) {
+				defer wg.Done()
+				repositories, errors := scanFunc(subCtx, s)
+				reposChan <- repositories
+				errorsChan <- errors
+			}(scanFunctions[i])
+		}
 
 		wg.Wait()
 

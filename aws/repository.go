@@ -5,11 +5,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
-	"github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
 	"github.com/cyralinc/dmap/model"
 )
 
-func newRepositoryFromRedshiftCluster(cluster types.Cluster) model.Repository {
+func newRepositoryFromRedshiftCluster(
+	cluster redshiftTypes.Cluster,
+) model.Repository {
 	tags := make([]string, 0, len(cluster.Tags))
 	for _, tag := range cluster.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -29,7 +31,9 @@ func newRepositoryFromRedshiftCluster(cluster types.Cluster) model.Repository {
 	}
 }
 
-func newRepositoryFromDynamoDBTable(table dynamoDBTable) model.Repository {
+func newRepositoryFromDynamoDBTable(
+	table dynamoDBTable,
+) model.Repository {
 	tags := make([]string, 0, len(table.Tags))
 	for _, tag := range table.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -49,7 +53,9 @@ func newRepositoryFromDynamoDBTable(table dynamoDBTable) model.Repository {
 	}
 }
 
-func newRepositoryFromRDSCluster(cluster rdsTypes.DBCluster) model.Repository {
+func newRepositoryFromRDSCluster(
+	cluster rdsTypes.DBCluster,
+) model.Repository {
 	tags := make([]string, 0, len(cluster.TagList))
 	for _, tag := range cluster.TagList {
 		tags = append(tags, fmt.Sprintf(
@@ -69,7 +75,9 @@ func newRepositoryFromRDSCluster(cluster rdsTypes.DBCluster) model.Repository {
 	}
 }
 
-func newRepositoryFromRDSInstance(instance rdsTypes.DBInstance) model.Repository {
+func newRepositoryFromRDSInstance(
+	instance rdsTypes.DBInstance,
+) model.Repository {
 	tags := make([]string, 0, len(instance.TagList))
 	for _, tag := range instance.TagList {
 		tags = append(tags, fmt.Sprintf(

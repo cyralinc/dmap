@@ -30,12 +30,8 @@ func NewScanManager(ctx context.Context, config config.Config) (*ScanManager, er
 	s := &ScanManager{
 		config: config,
 	}
-	if s.config.IsAWSConfigured() {
-		if err := s.initAWSScanner(ctx); err != nil {
-			return nil, fmt.Errorf("error initializing AWS scanner: %w", err)
-		}
-	} else {
-		return nil, fmt.Errorf("AWS configuration must be specified")
+	if err := s.initAWSScanner(ctx); err != nil {
+		return nil, fmt.Errorf("error initializing AWS scanner: %w", err)
 	}
 	return s, nil
 }

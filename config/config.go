@@ -1,9 +1,7 @@
-package scan
+package config
 
 import (
 	"fmt"
-
-	"github.com/cyralinc/dmap/aws"
 )
 
 type Config struct {
@@ -12,11 +10,16 @@ type Config struct {
 
 type AWSConfig struct {
 	Regions    []string
-	AssumeRole *aws.AWSAssumeRoleConfig
+	AssumeRole *AWSAssumeRoleConfig
 }
 
-func (c *Config) validateConfig() error {
-	if c.isAWSConfigured() {
+type AWSAssumeRoleConfig struct {
+	IAMRoleARN string
+	ExternalID string
+}
+
+func (c *Config) ValidateConfig() error {
+	if c.IsAWSConfigured() {
 		if len(c.AWS.Regions) == 0 {
 			return fmt.Errorf("AWS regions are required")
 		}
@@ -31,6 +34,6 @@ func (c *Config) validateConfig() error {
 	return nil
 }
 
-func (c *Config) isAWSConfigured() bool {
+func (c *Config) IsAWSConfigured() bool {
 	return c.AWS != nil
 }

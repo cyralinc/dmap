@@ -8,9 +8,9 @@ import (
 	"github.com/cyralinc/dmap/model"
 )
 
-func ScanRedshiftRepositories(
+func scanRedshiftRepositories(
 	ctx context.Context,
-	awsClient *AWSClient,
+	scanner *AWSScanner,
 	wg *sync.WaitGroup,
 	reposChannel chan<- []model.Repository,
 	errorsChan chan<- error,
@@ -18,7 +18,7 @@ func ScanRedshiftRepositories(
 	defer wg.Done()
 	repositories := []model.Repository{}
 	var errors error
-	redshiftClusters, err := awsClient.getRedshiftClusters(ctx)
+	redshiftClusters, err := scanner.getRedshiftClusters(ctx)
 	if err != nil {
 		errors = fmt.Errorf(
 			"error scanning Redshift clusters: %w",
@@ -35,9 +35,9 @@ func ScanRedshiftRepositories(
 	errorsChan <- errors
 }
 
-func ScanDynamoDBRepositories(
+func scanDynamoDBRepositories(
 	ctx context.Context,
-	awsClient *AWSClient,
+	scanner *AWSScanner,
 	wg *sync.WaitGroup,
 	reposChannel chan<- []model.Repository,
 	errorsChan chan<- error,
@@ -45,7 +45,7 @@ func ScanDynamoDBRepositories(
 	defer wg.Done()
 	repositories := []model.Repository{}
 	var errors error
-	dynamodbTables, err := awsClient.getDynamoDBTables(ctx)
+	dynamodbTables, err := scanner.getDynamoDBTables(ctx)
 	if err != nil {
 		errors = fmt.Errorf(
 			"error scanning DynamoDB tables: %w",
@@ -62,9 +62,9 @@ func ScanDynamoDBRepositories(
 	errorsChan <- errors
 }
 
-func ScanRDSClusterRepositories(
+func scanRDSClusterRepositories(
 	ctx context.Context,
-	awsClient *AWSClient,
+	scanner *AWSScanner,
 	wg *sync.WaitGroup,
 	reposChannel chan<- []model.Repository,
 	errorsChan chan<- error,
@@ -72,7 +72,7 @@ func ScanRDSClusterRepositories(
 	defer wg.Done()
 	repositories := []model.Repository{}
 	var errors error
-	rdsClusters, err := awsClient.getRDSClusters(ctx)
+	rdsClusters, err := scanner.getRDSClusters(ctx)
 	if err != nil {
 		errors = fmt.Errorf(
 			"error scanning RDS clusters: %w",
@@ -89,9 +89,9 @@ func ScanRDSClusterRepositories(
 	errorsChan <- errors
 }
 
-func ScanRDSInstanceRepositories(
+func scanRDSInstanceRepositories(
 	ctx context.Context,
-	awsClient *AWSClient,
+	scanner *AWSScanner,
 	wg *sync.WaitGroup,
 	reposChannel chan<- []model.Repository,
 	errorsChan chan<- error,
@@ -99,7 +99,7 @@ func ScanRDSInstanceRepositories(
 	defer wg.Done()
 	repositories := []model.Repository{}
 	var errors error
-	rdsInstances, err := awsClient.getRDSInstances(ctx)
+	rdsInstances, err := scanner.getRDSInstances(ctx)
 	if err != nil {
 		errors = fmt.Errorf(
 			"error scanning RDS instances: %w",

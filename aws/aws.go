@@ -2,10 +2,12 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -14,66 +16,110 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	rsTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/cyralinc/dmap/config"
+	"github.com/cyralinc/dmap/model"
 )
 
-type AWSClient struct {
-	config         aws.Config
+type AWSScanner struct {
+	scanConfig config.AWSConfig
+	// Wrap all the errors that happen during the scan.
+	scanErrors error
+
+	awsConfig      aws.Config
 	rdsClient      *rds.Client
 	redshiftClient *redshift.Client
 	dynamodbClient *dynamodb.Client
 }
 
-type AWSAssumeRoleConfig struct {
-	IAMRoleARN string
-	ExternalID string
-}
-
-func NewAWSClient(
+func NewAWSScanner(
 	ctx context.Context,
-	assumeRole *AWSAssumeRoleConfig,
-) (*AWSClient, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
+	scanConfig config.AWSConfig,
+) (*AWSScanner, error) {
+	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
-	c := &AWSClient{
-		config: cfg,
+	s := &AWSScanner{
+		scanConfig: scanConfig,
+		awsConfig:  awsConfig,
 	}
-	if assumeRole != nil {
-		if err := c.assumeRole(ctx, *assumeRole); err != nil {
+	if s.scanConfig.AssumeRole != nil {
+		if err := s.assumeRole(ctx); err != nil {
 			return nil, fmt.Errorf("error assuming IAM role: %w", err)
 		}
 	}
-	c.initializeServiceClients()
-	return c, nil
+	s.initializeServiceClients()
+	return s, nil
 }
 
-func (c *AWSClient) SetRegion(region string) {
-	c.config.Region = region
+func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
+	repositories := []model.Repository{}
+	for _, region := range s.scanConfig.Regions {
+		s.setRegion(region)
+
+		subCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		numRoutines := 4
+		reposChan := make(chan []model.Repository, numRoutines)
+		errorsChan := make(chan error, numRoutines)
+		var wg sync.WaitGroup
+		wg.Add(numRoutines)
+
+		go scanRDSClusterRepositories(subCtx, s, &wg, reposChan, errorsChan)
+
+		go scanRDSInstanceRepositories(subCtx, s, &wg, reposChan, errorsChan)
+
+		go scanRedshiftRepositories(subCtx, s, &wg, reposChan, errorsChan)
+
+		go scanDynamoDBRepositories(subCtx, s, &wg, reposChan, errorsChan)
+
+		wg.Wait()
+
+		close(reposChan)
+		close(errorsChan)
+
+		for repos := range reposChan {
+			repositories = append(repositories, repos...)
+		}
+
+		for err := range errorsChan {
+			s.scanErrors = errors.Join(s.scanErrors, err)
+		}
+	}
+	return repositories, s.scanErrors
+}
+
+func (c *AWSScanner) setRegion(region string) {
+	c.awsConfig.Region = region
 	c.initializeServiceClients()
 }
 
-func (c *AWSClient) assumeRole(
+func (s *AWSScanner) assumeRole(
 	ctx context.Context,
-	assumeRole AWSAssumeRoleConfig,
 ) error {
-	stsClient := sts.NewFromConfig(c.config)
+	stsClient := sts.NewFromConfig(s.awsConfig)
 	credsProvider := stscreds.NewAssumeRoleProvider(
 		stsClient,
-		assumeRole.IAMRoleARN,
+		s.scanConfig.AssumeRole.IAMRoleARN,
 		func(o *stscreds.AssumeRoleOptions) {
-			o.ExternalID = &assumeRole.ExternalID
+			o.ExternalID = &s.scanConfig.AssumeRole.ExternalID
 		},
 	)
-	c.config.Credentials = aws.NewCredentialsCache(credsProvider)
+	s.awsConfig.Credentials = aws.NewCredentialsCache(credsProvider)
 	// Validate AWS credentials provider.
-	if _, err := c.config.Credentials.Retrieve(ctx); err != nil {
+	if _, err := s.awsConfig.Credentials.Retrieve(ctx); err != nil {
 		return fmt.Errorf("failed to retrieve AWS credentials: %w", err)
 	}
 	return nil
 }
 
-func (c *AWSClient) getRDSClusters(
+func (c *AWSScanner) initializeServiceClients() {
+	c.rdsClient = rds.NewFromConfig(c.awsConfig)
+	c.redshiftClient = redshift.NewFromConfig(c.awsConfig)
+	c.dynamodbClient = dynamodb.NewFromConfig(c.awsConfig)
+}
+
+func (c *AWSScanner) getRDSClusters(
 	ctx context.Context,
 ) ([]rdsTypes.DBCluster, error) {
 	var clusters []rdsTypes.DBCluster
@@ -101,7 +147,7 @@ func (c *AWSClient) getRDSClusters(
 	return clusters, nil
 }
 
-func (c *AWSClient) getRDSInstances(
+func (c *AWSScanner) getRDSInstances(
 	ctx context.Context,
 ) ([]rdsTypes.DBInstance, error) {
 	var instances []rdsTypes.DBInstance
@@ -129,7 +175,7 @@ func (c *AWSClient) getRDSInstances(
 	return instances, nil
 }
 
-func (c *AWSClient) getRedshiftClusters(
+func (c *AWSScanner) getRedshiftClusters(
 	ctx context.Context,
 ) ([]rsTypes.Cluster, error) {
 	var clusters []rsTypes.Cluster
@@ -162,7 +208,7 @@ type dynamoDBTable struct {
 	Tags  []ddbTypes.Tag
 }
 
-func (c *AWSClient) getDynamoDBTables(
+func (c *AWSScanner) getDynamoDBTables(
 	ctx context.Context,
 ) ([]dynamoDBTable, error) {
 	var tableNames []string
@@ -231,10 +277,4 @@ func (c *AWSClient) getDynamoDBTables(
 		})
 	}
 	return tables, nil
-}
-
-func (c *AWSClient) initializeServiceClients() {
-	c.rdsClient = rds.NewFromConfig(c.config)
-	c.redshiftClient = redshift.NewFromConfig(c.config)
-	c.dynamodbClient = dynamodb.NewFromConfig(c.config)
 }

@@ -1,9 +1,7 @@
 package scan
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -21,11 +19,12 @@ const (
 )
 
 type Repository struct {
+	Id         string
 	Name       string
+	Type       RepoType
 	CreatedAt  time.Time
 	Tags       []string
-	Type       RepoType
-	Properties map[string]any
+	Properties any
 }
 
 func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
@@ -38,33 +37,72 @@ func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
 		))
 	}
 
-	bytes, err := json.Marshal(cluster)
-	if err != nil {
-		log.Printf("%v", err)
-	}
-	var properties map[string]any
-	json.Unmarshal(bytes, &properties)
-	// TODO: delete map entries corresponding to high-level fields.
-
-	repo := Repository{
+	return Repository{
+		Id:         aws.ToString(cluster.ClusterNamespaceArn),
 		Name:       aws.ToString(cluster.ClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
 		Type:       RepoTypeRedshift,
 		Tags:       tags,
-		Properties: properties,
+		Properties: cluster,
 	}
-
-	return repo
 }
 
 func newRepositoryFromDynamoDBTable(table dynamoDBTable) Repository {
-	return Repository{}
+	tags := make([]string, 0, len(table.Tags))
+	for _, tag := range table.Tags {
+		tags = append(tags, fmt.Sprintf(
+			"%s:%s",
+			aws.ToString(tag.Key),
+			aws.ToString(tag.Value),
+		))
+	}
+
+	return Repository{
+		Id:         aws.ToString(table.Table.TableId),
+		Name:       aws.ToString(table.Table.TableName),
+		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
+		Type:       RepoTypeDynamoDB,
+		Tags:       tags,
+		Properties: table,
+	}
 }
 
 func newRepositoryFromRDSCluster(cluster rdsType.DBCluster) Repository {
-	return Repository{}
+	tags := make([]string, 0, len(cluster.TagList))
+	for _, tag := range cluster.TagList {
+		tags = append(tags, fmt.Sprintf(
+			"%s:%s",
+			aws.ToString(tag.Key),
+			aws.ToString(tag.Value),
+		))
+	}
+
+	return Repository{
+		Id:         aws.ToString(cluster.DBClusterArn),
+		Name:       aws.ToString(cluster.DBClusterIdentifier),
+		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
+		Type:       RepoTypeRDS,
+		Tags:       tags,
+		Properties: cluster,
+	}
 }
 
 func newRepositoryFromRDSInstance(instance rdsType.DBInstance) Repository {
-	return Repository{}
+	tags := make([]string, 0, len(instance.TagList))
+	for _, tag := range instance.TagList {
+		tags = append(tags, fmt.Sprintf(
+			"%s:%s",
+			aws.ToString(tag.Key),
+			aws.ToString(tag.Value),
+		))
+	}
+
+	return Repository{
+		Id:         aws.ToString(instance.DBInstanceArn),
+		Name:       aws.ToString(instance.DBInstanceIdentifier),
+		CreatedAt:  aws.ToTime(instance.InstanceCreateTime),
+		Type:       RepoTypeRDS,
+		Tags:       tags,
+		Properties: instance,
+	}
 }

@@ -1,33 +1,15 @@
-package scan
+package aws
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	rdsType "github.com/aws/aws-sdk-go-v2/service/rds/types"
+	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	"github.com/cyralinc/dmap/model"
 )
 
-type RepoType string
-
-const (
-	// Repo types
-	RepoTypeRDS      RepoType = "TYPE_RDS"
-	RepoTypeRedshift RepoType = "TYPE_REDSHIFT"
-	RepoTypeDynamoDB RepoType = "TYPE_DYNAMODB"
-)
-
-type Repository struct {
-	Id         string
-	Name       string
-	Type       RepoType
-	CreatedAt  time.Time
-	Tags       []string
-	Properties any
-}
-
-func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
+func newRepositoryFromRedshiftCluster(cluster types.Cluster) model.Repository {
 	tags := make([]string, 0, len(cluster.Tags))
 	for _, tag := range cluster.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -37,17 +19,17 @@ func newRepositoryFromRedshiftCluster(cluster types.Cluster) Repository {
 		))
 	}
 
-	return Repository{
+	return model.Repository{
 		Id:         aws.ToString(cluster.ClusterNamespaceArn),
 		Name:       aws.ToString(cluster.ClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       RepoTypeRedshift,
+		Type:       model.RepoTypeRedshift,
 		Tags:       tags,
 		Properties: cluster,
 	}
 }
 
-func newRepositoryFromDynamoDBTable(table dynamoDBTable) Repository {
+func newRepositoryFromDynamoDBTable(table dynamoDBTable) model.Repository {
 	tags := make([]string, 0, len(table.Tags))
 	for _, tag := range table.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -57,17 +39,17 @@ func newRepositoryFromDynamoDBTable(table dynamoDBTable) Repository {
 		))
 	}
 
-	return Repository{
+	return model.Repository{
 		Id:         aws.ToString(table.Table.TableId),
 		Name:       aws.ToString(table.Table.TableName),
 		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
-		Type:       RepoTypeDynamoDB,
+		Type:       model.RepoTypeDynamoDB,
 		Tags:       tags,
 		Properties: table,
 	}
 }
 
-func newRepositoryFromRDSCluster(cluster rdsType.DBCluster) Repository {
+func newRepositoryFromRDSCluster(cluster rdsTypes.DBCluster) model.Repository {
 	tags := make([]string, 0, len(cluster.TagList))
 	for _, tag := range cluster.TagList {
 		tags = append(tags, fmt.Sprintf(
@@ -77,17 +59,17 @@ func newRepositoryFromRDSCluster(cluster rdsType.DBCluster) Repository {
 		))
 	}
 
-	return Repository{
+	return model.Repository{
 		Id:         aws.ToString(cluster.DBClusterArn),
 		Name:       aws.ToString(cluster.DBClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       RepoTypeRDS,
+		Type:       model.RepoTypeRDS,
 		Tags:       tags,
 		Properties: cluster,
 	}
 }
 
-func newRepositoryFromRDSInstance(instance rdsType.DBInstance) Repository {
+func newRepositoryFromRDSInstance(instance rdsTypes.DBInstance) model.Repository {
 	tags := make([]string, 0, len(instance.TagList))
 	for _, tag := range instance.TagList {
 		tags = append(tags, fmt.Sprintf(
@@ -97,11 +79,11 @@ func newRepositoryFromRDSInstance(instance rdsType.DBInstance) Repository {
 		))
 	}
 
-	return Repository{
+	return model.Repository{
 		Id:         aws.ToString(instance.DBInstanceArn),
 		Name:       aws.ToString(instance.DBInstanceIdentifier),
 		CreatedAt:  aws.ToTime(instance.InstanceCreateTime),
-		Type:       RepoTypeRDS,
+		Type:       model.RepoTypeRDS,
 		Tags:       tags,
 		Properties: instance,
 	}

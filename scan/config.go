@@ -1,6 +1,10 @@
 package scan
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/cyralinc/dmap/aws"
+)
 
 type Config struct {
 	AWS *AWSConfig
@@ -8,12 +12,7 @@ type Config struct {
 
 type AWSConfig struct {
 	Regions    []string
-	AssumeRole *AWSAssumeRoleConfig
-}
-
-type AWSAssumeRoleConfig struct {
-	IAMRoleARN string
-	ExternalID string
+	AssumeRole *aws.AWSAssumeRoleConfig
 }
 
 func (c *Config) validateConfig() error {

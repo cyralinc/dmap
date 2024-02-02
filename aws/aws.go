@@ -1,4 +1,4 @@
-package scan
+package aws
 
 import (
 	"context"
@@ -10,28 +10,33 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
-	rdsType "github.com/aws/aws-sdk-go-v2/service/rds/types"
+	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	rsTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-type awsClient struct {
+type AWSClient struct {
 	config         aws.Config
 	rdsClient      *rds.Client
 	redshiftClient *redshift.Client
 	dynamodbClient *dynamodb.Client
 }
 
-func newAWSClient(
+type AWSAssumeRoleConfig struct {
+	IAMRoleARN string
+	ExternalID string
+}
+
+func NewAWSClient(
 	ctx context.Context,
 	assumeRole *AWSAssumeRoleConfig,
-) (*awsClient, error) {
+) (*AWSClient, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
-	c := &awsClient{
+	c := &AWSClient{
 		config: cfg,
 	}
 	if assumeRole != nil {
@@ -43,7 +48,12 @@ func newAWSClient(
 	return c, nil
 }
 
-func (c *awsClient) assumeRole(
+func (c *AWSClient) SetRegion(region string) {
+	c.config.Region = region
+	c.initializeServiceClients()
+}
+
+func (c *AWSClient) assumeRole(
 	ctx context.Context,
 	assumeRole AWSAssumeRoleConfig,
 ) error {
@@ -63,15 +73,10 @@ func (c *awsClient) assumeRole(
 	return nil
 }
 
-func (c *awsClient) setRegion(region string) {
-	c.config.Region = region
-	c.initializeServiceClients()
-}
-
-func (c *awsClient) getRDSClusters(
+func (c *AWSClient) getRDSClusters(
 	ctx context.Context,
-) ([]rdsType.DBCluster, error) {
-	var clusters []rdsType.DBCluster
+) ([]rdsTypes.DBCluster, error) {
+	var clusters []rdsTypes.DBCluster
 	// Used for pagination
 	var marker *string
 	for {
@@ -96,10 +101,10 @@ func (c *awsClient) getRDSClusters(
 	return clusters, nil
 }
 
-func (c *awsClient) getRDSInstances(
+func (c *AWSClient) getRDSInstances(
 	ctx context.Context,
-) ([]rdsType.DBInstance, error) {
-	var instances []rdsType.DBInstance
+) ([]rdsTypes.DBInstance, error) {
+	var instances []rdsTypes.DBInstance
 	// Used for pagination
 	var marker *string
 	for {
@@ -124,7 +129,7 @@ func (c *awsClient) getRDSInstances(
 	return instances, nil
 }
 
-func (c *awsClient) getRedshiftClusters(
+func (c *AWSClient) getRedshiftClusters(
 	ctx context.Context,
 ) ([]rsTypes.Cluster, error) {
 	var clusters []rsTypes.Cluster
@@ -157,7 +162,7 @@ type dynamoDBTable struct {
 	Tags  []ddbTypes.Tag
 }
 
-func (c *awsClient) getDynamoDBTables(
+func (c *AWSClient) getDynamoDBTables(
 	ctx context.Context,
 ) ([]dynamoDBTable, error) {
 	var tableNames []string
@@ -228,7 +233,7 @@ func (c *awsClient) getDynamoDBTables(
 	return tables, nil
 }
 
-func (c *awsClient) initializeServiceClients() {
+func (c *AWSClient) initializeServiceClients() {
 	c.rdsClient = rds.NewFromConfig(c.config)
 	c.redshiftClient = redshift.NewFromConfig(c.config)
 	c.dynamodbClient = dynamodb.NewFromConfig(c.config)

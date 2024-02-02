@@ -50,13 +50,12 @@ func scanRDSInstanceRepositories(
 	for _, instance := range rdsInstances {
 		// Skip cluster instances, since they were already added when retrieving
 		// the RDS clusters.
-		if instance.DBClusterIdentifier != nil {
-			continue
+		if instance.DBClusterIdentifier == nil {
+			repositories = append(
+				repositories,
+				newRepositoryFromRDSInstance(instance),
+			)
 		}
-		repositories = append(
-			repositories,
-			newRepositoryFromRDSInstance(instance),
-		)
 	}
 	return repositories, errors
 }

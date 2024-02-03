@@ -21,10 +21,7 @@ import (
 )
 
 type AWSScanner struct {
-	scanConfig config.AWSConfig
-	// Wrap all the errors that happen during the scan.
-	scanErrors error
-
+	scanConfig     config.AWSConfig
 	awsConfig      aws.Config
 	rdsClient      *rds.Client
 	redshiftClient *redshift.Client
@@ -54,6 +51,7 @@ func NewAWSScanner(
 
 func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 	repositories := []model.Repository{}
+	var scanErrors []error
 	for _, region := range s.scanConfig.Regions {
 		s.setRegion(region)
 
@@ -91,10 +89,10 @@ func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 		}
 
 		for err := range errorsChan {
-			s.scanErrors = errors.Join(s.scanErrors, err)
+			scanErrors = append(scanErrors, err)
 		}
 	}
-	return repositories, s.scanErrors
+	return repositories, errors.Join(scanErrors...)
 }
 
 func (c *AWSScanner) setRegion(region string) {

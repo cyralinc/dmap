@@ -42,15 +42,15 @@ func (s *ScanManager) ScanRepositories(
 	results := &ScanResults{
 		Repositories: []model.Repository{},
 	}
-	var scanErrors error
+	var scanErrors []error
 	for _, scanner := range s.scanners {
 		repos, err := scanner.Scan(ctx)
 		if err != nil {
-			scanErrors = errors.Join(scanErrors, err)
+			scanErrors = append(scanErrors, err)
 		}
 		results.Repositories = append(results.Repositories, repos...)
 	}
-	return results, scanErrors
+	return results, errors.Join(scanErrors...)
 }
 
 func (s *ScanManager) initAWSScanner(ctx context.Context) error {

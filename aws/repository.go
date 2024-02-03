@@ -9,50 +9,6 @@ import (
 	"github.com/cyralinc/dmap/model"
 )
 
-func newRepositoryFromRedshiftCluster(
-	cluster redshiftTypes.Cluster,
-) model.Repository {
-	tags := make([]string, 0, len(cluster.Tags))
-	for _, tag := range cluster.Tags {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
-	}
-
-	return model.Repository{
-		Id:         aws.ToString(cluster.ClusterNamespaceArn),
-		Name:       aws.ToString(cluster.ClusterIdentifier),
-		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       model.RepoTypeRedshift,
-		Tags:       tags,
-		Properties: cluster,
-	}
-}
-
-func newRepositoryFromDynamoDBTable(
-	table dynamoDBTable,
-) model.Repository {
-	tags := make([]string, 0, len(table.Tags))
-	for _, tag := range table.Tags {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
-	}
-
-	return model.Repository{
-		Id:         aws.ToString(table.Table.TableId),
-		Name:       aws.ToString(table.Table.TableName),
-		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
-		Type:       model.RepoTypeDynamoDB,
-		Tags:       tags,
-		Properties: table,
-	}
-}
-
 func newRepositoryFromRDSCluster(
 	cluster rdsTypes.DBCluster,
 ) model.Repository {
@@ -94,5 +50,49 @@ func newRepositoryFromRDSInstance(
 		Type:       model.RepoTypeRDS,
 		Tags:       tags,
 		Properties: instance,
+	}
+}
+
+func newRepositoryFromRedshiftCluster(
+	cluster redshiftTypes.Cluster,
+) model.Repository {
+	tags := make([]string, 0, len(cluster.Tags))
+	for _, tag := range cluster.Tags {
+		tags = append(tags, fmt.Sprintf(
+			"%s:%s",
+			aws.ToString(tag.Key),
+			aws.ToString(tag.Value),
+		))
+	}
+
+	return model.Repository{
+		Id:         aws.ToString(cluster.ClusterNamespaceArn),
+		Name:       aws.ToString(cluster.ClusterIdentifier),
+		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
+		Type:       model.RepoTypeRedshift,
+		Tags:       tags,
+		Properties: cluster,
+	}
+}
+
+func newRepositoryFromDynamoDBTable(
+	table dynamoDBTable,
+) model.Repository {
+	tags := make([]string, 0, len(table.Tags))
+	for _, tag := range table.Tags {
+		tags = append(tags, fmt.Sprintf(
+			"%s:%s",
+			aws.ToString(tag.Key),
+			aws.ToString(tag.Value),
+		))
+	}
+
+	return model.Repository{
+		Id:         aws.ToString(table.Table.TableId),
+		Name:       aws.ToString(table.Table.TableName),
+		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
+		Type:       model.RepoTypeDynamoDB,
+		Tags:       tags,
+		Properties: table.Table,
 	}
 }

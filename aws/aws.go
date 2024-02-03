@@ -20,12 +20,51 @@ import (
 	"github.com/cyralinc/dmap/model"
 )
 
+type RDSClient interface {
+	DescribeDBClusters(
+		ctx context.Context,
+		params *rds.DescribeDBClustersInput,
+		optFns ...func(*rds.Options),
+	) (*rds.DescribeDBClustersOutput, error)
+	DescribeDBInstances(
+		ctx context.Context,
+		params *rds.DescribeDBInstancesInput,
+		optFns ...func(*rds.Options),
+	) (*rds.DescribeDBInstancesOutput, error)
+}
+
+type RedshiftClient interface {
+	DescribeClusters(
+		ctx context.Context,
+		params *redshift.DescribeClustersInput,
+		optFns ...func(*redshift.Options),
+	) (*redshift.DescribeClustersOutput, error)
+}
+
+type DynamoDBClient interface {
+	ListTables(
+		ctx context.Context,
+		params *dynamodb.ListTablesInput,
+		optFns ...func(*dynamodb.Options),
+	) (*dynamodb.ListTablesOutput, error)
+	DescribeTable(
+		ctx context.Context,
+		params *dynamodb.DescribeTableInput,
+		optFns ...func(*dynamodb.Options),
+	) (*dynamodb.DescribeTableOutput, error)
+	ListTagsOfResource(
+		ctx context.Context,
+		params *dynamodb.ListTagsOfResourceInput,
+		optFns ...func(*dynamodb.Options),
+	) (*dynamodb.ListTagsOfResourceOutput, error)
+}
+
 type AWSScanner struct {
 	scanConfig     config.AWSConfig
 	awsConfig      aws.Config
-	rdsClient      *rds.Client
-	redshiftClient *redshift.Client
-	dynamodbClient *dynamodb.Client
+	rdsClient      RDSClient
+	redshiftClient RedshiftClient
+	dynamodbClient DynamoDBClient
 }
 
 func NewAWSScanner(
@@ -96,8 +135,10 @@ func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 }
 
 func (c *AWSScanner) setRegion(region string) {
-	c.awsConfig.Region = region
-	c.initializeServiceClients()
+	if c.awsConfig.Region != region {
+		c.awsConfig.Region = region
+		c.initializeServiceClients()
+	}
 }
 
 func (s *AWSScanner) assumeRole(
@@ -210,7 +251,7 @@ func (c *AWSScanner) getRedshiftClusters(
 }
 
 type dynamoDBTable struct {
-	Table *ddbTypes.TableDescription
+	Table ddbTypes.TableDescription
 	Tags  []ddbTypes.Tag
 }
 
@@ -279,7 +320,7 @@ func (c *AWSScanner) getDynamoDBTables(
 		}
 
 		tables = append(tables, dynamoDBTable{
-			Table: table,
+			Table: *table,
 			Tags:  tableTags,
 		})
 	}

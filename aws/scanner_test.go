@@ -15,8 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cyralinc/dmap/config"
-	"github.com/cyralinc/dmap/model"
+	"github.com/cyralinc/dmap/scan"
 	"github.com/cyralinc/dmap/testutil/mock"
 )
 
@@ -104,9 +103,9 @@ func TestAWSScanner(t *testing.T) {
 func (s *AWSScannerTestSuite) TestScan() {
 	region := "us-east-1"
 	awsScanner := AWSScanner{
-		scanConfig: config.AWSConfig{
+		scannerConfig: Config{
 			Regions: []string{region},
-			AssumeRole: &config.AWSAssumeRoleConfig{
+			AssumeRole: &AssumeRoleConfig{
 				IAMRoleARN: "arn:aws:iam::123456789012:role/SomeIAMRole",
 				ExternalID: "some-external-id-12345",
 			},
@@ -128,123 +127,129 @@ func (s *AWSScannerTestSuite) TestScan() {
 		},
 	}
 	ctx := context.Background()
-	repositories, err := awsScanner.Scan(ctx)
+	results, err := awsScanner.Scan(ctx)
 
-	expectedRepositories := []model.Repository{
-		{
-			Name:       *s.dummyRDSClusters[0].DBClusterIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSClusters[0],
-		},
-		{
-			Name:       *s.dummyRDSClusters[1].DBClusterIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSClusters[1],
-		},
-		{
-			Name:       *s.dummyRDSClusters[2].DBClusterIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSClusters[2],
-		},
-		{
-			Name:       *s.dummyRDSInstances[0].DBInstanceIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSInstances[0],
-		},
-		{
-			Name:       *s.dummyRDSInstances[1].DBInstanceIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSInstances[1],
-		},
-		{
-			Name:       *s.dummyRDSInstances[2].DBInstanceIdentifier,
-			Type:       model.RepoTypeRDS,
-			Tags:       []string{},
-			Properties: s.dummyRDSInstances[2],
-		},
-		{
-			Name:       *s.dummyRedshiftClusters[0].ClusterIdentifier,
-			Type:       model.RepoTypeRedshift,
-			Tags:       []string{},
-			Properties: s.dummyRedshiftClusters[0],
-		},
-		{
-			Name:       *s.dummyRedshiftClusters[1].ClusterIdentifier,
-			Type:       model.RepoTypeRedshift,
-			Tags:       []string{},
-			Properties: s.dummyRedshiftClusters[1],
-		},
-		{
-			Name:       *s.dummyRedshiftClusters[2].ClusterIdentifier,
-			Type:       model.RepoTypeRedshift,
-			Tags:       []string{},
-			Properties: s.dummyRedshiftClusters[2],
-		},
-		{
-			Name: s.dummyDynamoDBTableNames[0],
-			Type: model.RepoTypeDynamoDB,
-			Tags: []string{
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
-				),
+	expectedResults := &scan.ScanResults{
+		Repositories: []scan.Repository{
+			{
+				Name:       *s.dummyRDSClusters[0].DBClusterIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSClusters[0],
 			},
-			Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[0]],
-		},
-		{
-			Name: s.dummyDynamoDBTableNames[1],
-			Type: model.RepoTypeDynamoDB,
-			Tags: []string{
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
-				),
+			{
+				Name:       *s.dummyRDSClusters[1].DBClusterIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSClusters[1],
 			},
-			Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[1]],
-		},
-		{
-			Name: s.dummyDynamoDBTableNames[2],
-			Type: model.RepoTypeDynamoDB,
-			Tags: []string{
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
-				),
-				fmt.Sprintf(
-					"%s:%s",
-					*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
-				),
+			{
+				Name:       *s.dummyRDSClusters[2].DBClusterIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSClusters[2],
 			},
-			Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[2]],
+			{
+				Name:       *s.dummyRDSInstances[0].DBInstanceIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSInstances[0],
+			},
+			{
+				Name:       *s.dummyRDSInstances[1].DBInstanceIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSInstances[1],
+			},
+			{
+				Name:       *s.dummyRDSInstances[2].DBInstanceIdentifier,
+				Type:       scan.RepoTypeRDS,
+				Tags:       []string{},
+				Properties: s.dummyRDSInstances[2],
+			},
+			{
+				Name:       *s.dummyRedshiftClusters[0].ClusterIdentifier,
+				Type:       scan.RepoTypeRedshift,
+				Tags:       []string{},
+				Properties: s.dummyRedshiftClusters[0],
+			},
+			{
+				Name:       *s.dummyRedshiftClusters[1].ClusterIdentifier,
+				Type:       scan.RepoTypeRedshift,
+				Tags:       []string{},
+				Properties: s.dummyRedshiftClusters[1],
+			},
+			{
+				Name:       *s.dummyRedshiftClusters[2].ClusterIdentifier,
+				Type:       scan.RepoTypeRedshift,
+				Tags:       []string{},
+				Properties: s.dummyRedshiftClusters[2],
+			},
+			{
+				Name: s.dummyDynamoDBTableNames[0],
+				Type: scan.RepoTypeDynamoDB,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
+					),
+				},
+				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[0]],
+			},
+			{
+				Name: s.dummyDynamoDBTableNames[1],
+				Type: scan.RepoTypeDynamoDB,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
+					),
+				},
+				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[1]],
+			},
+			{
+				Name: s.dummyDynamoDBTableNames[2],
+				Type: scan.RepoTypeDynamoDB,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[0].Key, *s.dummyDynamoDBTags[0].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[1].Key, *s.dummyDynamoDBTags[1].Value,
+					),
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyDynamoDBTags[2].Key, *s.dummyDynamoDBTags[2].Value,
+					),
+				},
+				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[2]],
+			},
 		},
 	}
 
-	require.ElementsMatch(s.T(), expectedRepositories, repositories)
+	require.ElementsMatch(
+		s.T(),
+		expectedResults.Repositories,
+		results.Repositories,
+	)
 	require.NoError(s.T(), err)
 }
 
@@ -252,9 +257,9 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 	region := "us-east-1"
 	dummyError := fmt.Errorf("dummy-error")
 	awsScanner := AWSScanner{
-		scanConfig: config.AWSConfig{
+		scannerConfig: Config{
 			Regions: []string{region},
-			AssumeRole: &config.AWSAssumeRoleConfig{
+			AssumeRole: &AssumeRoleConfig{
 				IAMRoleARN: "arn:aws:iam::123456789012:role/SomeIAMRole",
 				ExternalID: "some-external-id-12345",
 			},
@@ -280,11 +285,17 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 		},
 	}
 	ctx := context.Background()
-	repositories, err := awsScanner.Scan(ctx)
+	results, err := awsScanner.Scan(ctx)
 
-	expectedRepositories := []model.Repository{}
+	expectedResults := &scan.ScanResults{
+		Repositories: []scan.Repository{},
+	}
 	expectedErrorSubstring := dummyError.Error()
 
-	require.ElementsMatch(s.T(), expectedRepositories, repositories)
+	require.ElementsMatch(
+		s.T(),
+		expectedResults.Repositories,
+		results.Repositories,
+	)
 	require.ErrorContains(s.T(), err, expectedErrorSubstring)
 }

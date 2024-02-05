@@ -3,16 +3,16 @@ package mock
 import (
 	"context"
 
-	"github.com/cyralinc/dmap/model"
+	"github.com/cyralinc/dmap/scan"
 )
 
 type MockScanner struct {
-	Repositories []model.Repository
+	Repositories []scan.Repository
 	Err          error
 }
 
 func (m *MockScanner) Scan(
 	ctx context.Context,
-) ([]model.Repository, error) {
+) ([]scan.Repository, error) {
 	return m.Repositories, m.Err
 }

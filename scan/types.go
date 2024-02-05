@@ -1,4 +1,4 @@
-package model
+package scan
 
 import (
 	"time"
@@ -20,4 +20,8 @@ type Repository struct {
 	CreatedAt  time.Time
 	Tags       []string
 	Properties any
+}
+
+type ScanResults struct {
+	Repositories []Repository
 }

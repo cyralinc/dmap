@@ -6,12 +6,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
-	"github.com/cyralinc/dmap/model"
+	"github.com/cyralinc/dmap/scan"
 )
 
 func newRepositoryFromRDSCluster(
 	cluster rdsTypes.DBCluster,
-) model.Repository {
+) scan.Repository {
 	tags := make([]string, 0, len(cluster.TagList))
 	for _, tag := range cluster.TagList {
 		tags = append(tags, fmt.Sprintf(
@@ -21,11 +21,11 @@ func newRepositoryFromRDSCluster(
 		))
 	}
 
-	return model.Repository{
+	return scan.Repository{
 		Id:         aws.ToString(cluster.DBClusterArn),
 		Name:       aws.ToString(cluster.DBClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       model.RepoTypeRDS,
+		Type:       scan.RepoTypeRDS,
 		Tags:       tags,
 		Properties: cluster,
 	}
@@ -33,7 +33,7 @@ func newRepositoryFromRDSCluster(
 
 func newRepositoryFromRDSInstance(
 	instance rdsTypes.DBInstance,
-) model.Repository {
+) scan.Repository {
 	tags := make([]string, 0, len(instance.TagList))
 	for _, tag := range instance.TagList {
 		tags = append(tags, fmt.Sprintf(
@@ -43,11 +43,11 @@ func newRepositoryFromRDSInstance(
 		))
 	}
 
-	return model.Repository{
+	return scan.Repository{
 		Id:         aws.ToString(instance.DBInstanceArn),
 		Name:       aws.ToString(instance.DBInstanceIdentifier),
 		CreatedAt:  aws.ToTime(instance.InstanceCreateTime),
-		Type:       model.RepoTypeRDS,
+		Type:       scan.RepoTypeRDS,
 		Tags:       tags,
 		Properties: instance,
 	}
@@ -55,7 +55,7 @@ func newRepositoryFromRDSInstance(
 
 func newRepositoryFromRedshiftCluster(
 	cluster redshiftTypes.Cluster,
-) model.Repository {
+) scan.Repository {
 	tags := make([]string, 0, len(cluster.Tags))
 	for _, tag := range cluster.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -65,11 +65,11 @@ func newRepositoryFromRedshiftCluster(
 		))
 	}
 
-	return model.Repository{
+	return scan.Repository{
 		Id:         aws.ToString(cluster.ClusterNamespaceArn),
 		Name:       aws.ToString(cluster.ClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       model.RepoTypeRedshift,
+		Type:       scan.RepoTypeRedshift,
 		Tags:       tags,
 		Properties: cluster,
 	}
@@ -77,7 +77,7 @@ func newRepositoryFromRedshiftCluster(
 
 func newRepositoryFromDynamoDBTable(
 	table dynamoDBTable,
-) model.Repository {
+) scan.Repository {
 	tags := make([]string, 0, len(table.Tags))
 	for _, tag := range table.Tags {
 		tags = append(tags, fmt.Sprintf(
@@ -87,11 +87,11 @@ func newRepositoryFromDynamoDBTable(
 		))
 	}
 
-	return model.Repository{
+	return scan.Repository{
 		Id:         aws.ToString(table.Table.TableId),
 		Name:       aws.ToString(table.Table.TableName),
 		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
-		Type:       model.RepoTypeDynamoDB,
+		Type:       scan.RepoTypeDynamoDB,
 		Tags:       tags,
 		Properties: table.Table,
 	}

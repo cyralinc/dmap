@@ -16,8 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	rsTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/cyralinc/dmap/config"
-	"github.com/cyralinc/dmap/model"
+
+	"github.com/cyralinc/dmap/scan"
 )
 
 type RDSClient interface {
@@ -60,26 +60,32 @@ type DynamoDBClient interface {
 }
 
 type AWSScanner struct {
-	scanConfig     config.AWSConfig
+	scannerConfig  Config
 	awsConfig      aws.Config
 	rdsClient      RDSClient
 	redshiftClient RedshiftClient
 	dynamodbClient DynamoDBClient
 }
 
+// AWSScanner implements scan.Scanner
+var _ scan.Scanner = (*AWSScanner)(nil)
+
 func NewAWSScanner(
 	ctx context.Context,
-	scanConfig config.AWSConfig,
+	scannerConfig Config,
 ) (*AWSScanner, error) {
+	if err := scannerConfig.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid scanner config: %w", err)
+	}
 	awsConfig, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 	s := &AWSScanner{
-		scanConfig: scanConfig,
-		awsConfig:  awsConfig,
+		scannerConfig: scannerConfig,
+		awsConfig:     awsConfig,
 	}
-	if s.scanConfig.AssumeRole != nil {
+	if s.scannerConfig.AssumeRole != nil {
 		if err := s.assumeRole(ctx); err != nil {
 			return nil, fmt.Errorf("error assuming IAM role: %w", err)
 		}
@@ -88,10 +94,10 @@ func NewAWSScanner(
 	return s, nil
 }
 
-func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
-	repositories := []model.Repository{}
-	var scanErrors []error
-	for _, region := range s.scanConfig.Regions {
+func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
+	repositories := []scan.Repository{}
+	var errs []error
+	for _, region := range s.scannerConfig.Regions {
 		s.setRegion(region)
 
 		scanFunctions := []ScanFunction{
@@ -104,7 +110,7 @@ func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 		subCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 		numRoutines := len(scanFunctions)
-		reposChan := make(chan []model.Repository, numRoutines)
+		reposChan := make(chan []scan.Repository, numRoutines)
 		errorsChan := make(chan error, numRoutines)
 		var wg sync.WaitGroup
 		wg.Add(numRoutines)
@@ -128,10 +134,16 @@ func (s *AWSScanner) Scan(ctx context.Context) ([]model.Repository, error) {
 		}
 
 		for err := range errorsChan {
-			scanErrors = append(scanErrors, err)
+			errs = append(errs, err)
 		}
 	}
-	return repositories, errors.Join(scanErrors...)
+
+	scanResults := &scan.ScanResults{
+		Repositories: repositories,
+	}
+	scanErrors := errors.Join(errs...)
+
+	return scanResults, scanErrors
 }
 
 func (c *AWSScanner) setRegion(region string) {
@@ -147,9 +159,9 @@ func (s *AWSScanner) assumeRole(
 	stsClient := sts.NewFromConfig(s.awsConfig)
 	credsProvider := stscreds.NewAssumeRoleProvider(
 		stsClient,
-		s.scanConfig.AssumeRole.IAMRoleARN,
+		s.scannerConfig.AssumeRole.IAMRoleARN,
 		func(o *stscreds.AssumeRoleOptions) {
-			o.ExternalID = &s.scanConfig.AssumeRole.ExternalID
+			o.ExternalID = &s.scannerConfig.AssumeRole.ExternalID
 		},
 	)
 	s.awsConfig.Credentials = aws.NewCredentialsCache(credsProvider)

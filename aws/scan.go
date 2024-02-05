@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cyralinc/dmap/model"
+	"github.com/cyralinc/dmap/scan"
 )
 
 type ScanFunction func(
 	ctx context.Context,
 	scanner *AWSScanner,
-) ([]model.Repository, error)
+) ([]scan.Repository, error)
 
 func scanRDSClusterRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-) ([]model.Repository, error) {
-	repositories := []model.Repository{}
+) ([]scan.Repository, error) {
+	repositories := []scan.Repository{}
 	var errors error
 	rdsClusters, err := scanner.getRDSClusters(ctx)
 	if err != nil {
@@ -37,8 +37,8 @@ func scanRDSClusterRepositories(
 func scanRDSInstanceRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-) ([]model.Repository, error) {
-	repositories := []model.Repository{}
+) ([]scan.Repository, error) {
+	repositories := []scan.Repository{}
 	var errors error
 	rdsInstances, err := scanner.getRDSInstances(ctx)
 	if err != nil {
@@ -63,8 +63,8 @@ func scanRDSInstanceRepositories(
 func scanRedshiftRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-) ([]model.Repository, error) {
-	repositories := []model.Repository{}
+) ([]scan.Repository, error) {
+	repositories := []scan.Repository{}
 	var errors error
 	redshiftClusters, err := scanner.getRedshiftClusters(ctx)
 	if err != nil {
@@ -85,8 +85,8 @@ func scanRedshiftRepositories(
 func scanDynamoDBRepositories(
 	ctx context.Context,
 	scanner *AWSScanner,
-) ([]model.Repository, error) {
-	repositories := []model.Repository{}
+) ([]scan.Repository, error) {
+	repositories := []scan.Repository{}
 	var errors error
 	dynamodbTables, err := scanner.getDynamoDBTables(ctx)
 	if err != nil {

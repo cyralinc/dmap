@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+
 	"github.com/cyralinc/dmap/scan"
 )
 

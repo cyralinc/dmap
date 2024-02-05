@@ -7,11 +7,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
-	// ddbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
-
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 

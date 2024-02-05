@@ -8,9 +8,9 @@ type RepoType string
 
 const (
 	// Repo types
-	RepoTypeRDS      RepoType = "TYPE_RDS"
-	RepoTypeRedshift RepoType = "TYPE_REDSHIFT"
-	RepoTypeDynamoDB RepoType = "TYPE_DYNAMODB"
+	RepoTypeRDS      RepoType = "REPO_TYPE_RDS"
+	RepoTypeRedshift RepoType = "REPO_TYPE_REDSHIFT"
+	RepoTypeDynamoDB RepoType = "REPO_TYPE_DYNAMODB"
 )
 
 type Repository struct {

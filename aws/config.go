@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type Config struct {
+type ScannerConfig struct {
 	Regions    []string
 	AssumeRole *AssumeRoleConfig
 }
@@ -14,7 +14,7 @@ type AssumeRoleConfig struct {
 	ExternalID string
 }
 
-func (config *Config) Validate() error {
+func (config *ScannerConfig) Validate() error {
 	if len(config.Regions) == 0 {
 		return fmt.Errorf("AWS regions are required")
 	}

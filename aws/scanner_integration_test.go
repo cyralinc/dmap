@@ -18,7 +18,7 @@ type AWSScannerIntegrationTestSuite struct {
 
 func (s *AWSScannerIntegrationTestSuite) SetupSuite() {
 	ctx := context.Background()
-	scanner, err := NewAWSScanner(ctx, Config{
+	scanner, err := NewAWSScanner(ctx, ScannerConfig{
 		Regions: []string{
 			"us-east-1",
 			"us-east-2",

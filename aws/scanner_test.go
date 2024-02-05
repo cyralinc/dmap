@@ -101,29 +101,33 @@ func TestAWSScanner(t *testing.T) {
 }
 
 func (s *AWSScannerTestSuite) TestScan() {
-	region := "us-east-1"
 	awsScanner := AWSScanner{
-		scannerConfig: Config{
-			Regions: []string{region},
+		scannerConfig: ScannerConfig{
+			Regions: []string{
+				"us-east-1",
+			},
 			AssumeRole: &AssumeRoleConfig{
 				IAMRoleARN: "arn:aws:iam::123456789012:role/SomeIAMRole",
 				ExternalID: "some-external-id-12345",
 			},
 		},
-		awsConfig: aws.Config{
-			Region: region,
-		},
-		rdsClient: &mock.MockRDSClient{
-			DBClusters:  s.dummyRDSClusters,
-			DBInstances: s.dummyRDSInstances,
-		},
-		redshiftClient: &mock.MockRedshiftClient{
-			Clusters: s.dummyRedshiftClusters,
-		},
-		dynamodbClient: &mock.MockDynamoDBClient{
-			TableNames: s.dummyDynamoDBTableNames,
-			Table:      s.dummyDynamoDBTable,
-			Tags:       s.dummyDynamoDBTags,
+		awsConfig: aws.Config{},
+		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
+			return &awsClient{
+				config: awsConfig,
+				rds: &mock.MockRDSClient{
+					DBClusters:  s.dummyRDSClusters,
+					DBInstances: s.dummyRDSInstances,
+				},
+				redshift: &mock.MockRedshiftClient{
+					Clusters: s.dummyRedshiftClusters,
+				},
+				dynamodb: &mock.MockDynamoDBClient{
+					TableNames: s.dummyDynamoDBTableNames,
+					Table:      s.dummyDynamoDBTable,
+					Tags:       s.dummyDynamoDBTags,
+				},
+			}
 		},
 	}
 	ctx := context.Background()
@@ -254,36 +258,41 @@ func (s *AWSScannerTestSuite) TestScan() {
 }
 
 func (s *AWSScannerTestSuite) TestScan_WithErrors() {
-	region := "us-east-1"
 	dummyError := fmt.Errorf("dummy-error")
 	awsScanner := AWSScanner{
-		scannerConfig: Config{
-			Regions: []string{region},
+		scannerConfig: ScannerConfig{
+			Regions: []string{
+				"us-east-1",
+			},
 			AssumeRole: &AssumeRoleConfig{
 				IAMRoleARN: "arn:aws:iam::123456789012:role/SomeIAMRole",
 				ExternalID: "some-external-id-12345",
 			},
 		},
-		awsConfig: aws.Config{
-			Region: region,
-		},
-		rdsClient: &mock.MockRDSClient{
-			Errors: map[string]error{
-				"DescribeDBClusters":  dummyError,
-				"DescribeDBInstances": dummyError,
-			},
-		},
-		redshiftClient: &mock.MockRedshiftClient{
-			Errors: map[string]error{
-				"DescribeClusters": dummyError,
-			},
-		},
-		dynamodbClient: &mock.MockDynamoDBClient{
-			Errors: map[string]error{
-				"ListTables": dummyError,
-			},
+		awsConfig: aws.Config{},
+		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
+			return &awsClient{
+				config: awsConfig,
+				rds: &mock.MockRDSClient{
+					Errors: map[string]error{
+						"DescribeDBClusters":  dummyError,
+						"DescribeDBInstances": dummyError,
+					},
+				},
+				redshift: &mock.MockRedshiftClient{
+					Errors: map[string]error{
+						"DescribeClusters": dummyError,
+					},
+				},
+				dynamodb: &mock.MockDynamoDBClient{
+					Errors: map[string]error{
+						"ListTables": dummyError,
+					},
+				},
+			}
 		},
 	}
+
 	ctx := context.Background()
 	results, err := awsScanner.Scan(ctx)
 

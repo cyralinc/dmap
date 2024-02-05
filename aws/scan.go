@@ -7,20 +7,25 @@ import (
 	"github.com/cyralinc/dmap/scan"
 )
 
-type ScanFunction func(
+type scanFunction func(
 	ctx context.Context,
-	scanner *AWSScanner,
-) ([]scan.Repository, error)
+	awsClient *awsClient,
+) scanResponse
+
+type scanResponse struct {
+	repositories []scan.Repository
+	scanErrors   error
+}
 
 func scanRDSClusterRepositories(
 	ctx context.Context,
-	scanner *AWSScanner,
-) ([]scan.Repository, error) {
+	awsClient *awsClient,
+) scanResponse {
 	repositories := []scan.Repository{}
-	var errors error
-	rdsClusters, err := scanner.getRDSClusters(ctx)
+	var scanErrors error
+	rdsClusters, err := awsClient.getRDSClusters(ctx)
 	if err != nil {
-		errors = fmt.Errorf(
+		scanErrors = fmt.Errorf(
 			"error scanning RDS clusters: %w",
 			err,
 		)
@@ -31,18 +36,21 @@ func scanRDSClusterRepositories(
 			newRepositoryFromRDSCluster(cluster),
 		)
 	}
-	return repositories, errors
+	return scanResponse{
+		repositories: repositories,
+		scanErrors:   scanErrors,
+	}
 }
 
 func scanRDSInstanceRepositories(
 	ctx context.Context,
-	scanner *AWSScanner,
-) ([]scan.Repository, error) {
+	awsClient *awsClient,
+) scanResponse {
 	repositories := []scan.Repository{}
-	var errors error
-	rdsInstances, err := scanner.getRDSInstances(ctx)
+	var scanErrors error
+	rdsInstances, err := awsClient.getRDSInstances(ctx)
 	if err != nil {
-		errors = fmt.Errorf(
+		scanErrors = fmt.Errorf(
 			"error scanning RDS instances: %w",
 			err,
 		)
@@ -57,18 +65,21 @@ func scanRDSInstanceRepositories(
 			)
 		}
 	}
-	return repositories, errors
+	return scanResponse{
+		repositories: repositories,
+		scanErrors:   scanErrors,
+	}
 }
 
 func scanRedshiftRepositories(
 	ctx context.Context,
-	scanner *AWSScanner,
-) ([]scan.Repository, error) {
+	awsClient *awsClient,
+) scanResponse {
 	repositories := []scan.Repository{}
-	var errors error
-	redshiftClusters, err := scanner.getRedshiftClusters(ctx)
+	var scanErrors error
+	redshiftClusters, err := awsClient.getRedshiftClusters(ctx)
 	if err != nil {
-		errors = fmt.Errorf(
+		scanErrors = fmt.Errorf(
 			"error scanning Redshift clusters: %w",
 			err,
 		)
@@ -79,18 +90,21 @@ func scanRedshiftRepositories(
 			newRepositoryFromRedshiftCluster(cluster),
 		)
 	}
-	return repositories, errors
+	return scanResponse{
+		repositories: repositories,
+		scanErrors:   scanErrors,
+	}
 }
 
 func scanDynamoDBRepositories(
 	ctx context.Context,
-	scanner *AWSScanner,
-) ([]scan.Repository, error) {
+	awsClient *awsClient,
+) scanResponse {
 	repositories := []scan.Repository{}
-	var errors error
-	dynamodbTables, err := scanner.getDynamoDBTables(ctx)
+	var scanErrors error
+	dynamodbTables, err := awsClient.getDynamoDBTables(ctx)
 	if err != nil {
-		errors = fmt.Errorf(
+		scanErrors = fmt.Errorf(
 			"error scanning DynamoDB tables: %w",
 			err,
 		)
@@ -101,5 +115,8 @@ func scanDynamoDBRepositories(
 			newRepositoryFromDynamoDBTable(table),
 		)
 	}
-	return repositories, errors
+	return scanResponse{
+		repositories: repositories,
+		scanErrors:   scanErrors,
+	}
 }

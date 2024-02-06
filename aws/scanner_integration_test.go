@@ -35,7 +35,7 @@ func TestIntegrationAWSScanner(t *testing.T) {
 	suite.Run(t, s)
 }
 
-func (s *AWSScannerIntegrationTestSuite) TestScanRepositories() {
+func (s *AWSScannerIntegrationTestSuite) TestScan() {
 	ctx := context.Background()
 	results, scanErrors := s.scanner.Scan(ctx)
 	fmt.Printf("Num. Repositories: %v\n", len(results.Repositories))

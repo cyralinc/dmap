@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 )
 
 // ScannerConfig represents an AWSScanner configuration. It allows defining the
@@ -32,6 +33,22 @@ func (config *ScannerConfig) Validate() error {
 	for _, region := range config.Regions {
 		if region == "" {
 			return fmt.Errorf("AWS region can't be empty")
+		}
+	}
+	if config.AssumeRole != nil {
+		iamRolePatern := "^arn:aws:iam::\\d{12}:role/.*$"
+		match, err := regexp.MatchString(
+			iamRolePatern,
+			config.AssumeRole.IAMRoleARN,
+		)
+		if err != nil {
+			return fmt.Errorf("error verifying IAM Role format: %w", err)
+		}
+		if !match {
+			return fmt.Errorf(
+				"invalid IAM Role: must match format '%s'",
+				iamRolePatern,
+			)
 		}
 	}
 	return nil

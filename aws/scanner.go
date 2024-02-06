@@ -59,7 +59,7 @@ func NewAWSScanner(
 // and instances, Redshift clusters and DynamoDB tables.
 func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	repositories := []scan.Repository{}
-	var errs []error
+	var scanErrors []error
 
 	numRoutines := len(s.scannerConfig.Regions)
 	responseChan := make(chan scanResponse, numRoutines)
@@ -79,15 +79,14 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 
 	for response := range responseChan {
 		repositories = append(repositories, response.repositories...)
-		errs = append(errs, response.scanErrors)
+		scanErrors = append(scanErrors, response.scanErrors...)
 	}
 
 	scanResults := &scan.ScanResults{
 		Repositories: repositories,
 	}
-	scanErrors := errors.Join(errs...)
 
-	return scanResults, scanErrors
+	return scanResults, errors.Join(scanErrors...)
 }
 
 func scanRegion(
@@ -97,7 +96,7 @@ func scanRegion(
 	newAWSClient awsClientConstructor,
 ) scanResponse {
 	repositories := []scan.Repository{}
-	var errs []error
+	var scanErrors []error
 
 	awsConfig.Region = region
 	awsClient := newAWSClient(awsConfig)
@@ -127,12 +126,12 @@ func scanRegion(
 
 	for response := range responseChan {
 		repositories = append(repositories, response.repositories...)
-		errs = append(errs, response.scanErrors)
+		scanErrors = append(scanErrors, response.scanErrors...)
 	}
 
 	return scanResponse{
 		repositories: repositories,
-		scanErrors:   errors.Join(errs...),
+		scanErrors:   scanErrors,
 	}
 }
 

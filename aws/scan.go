@@ -14,7 +14,7 @@ type scanFunction func(
 
 type scanResponse struct {
 	repositories []scan.Repository
-	scanErrors   error
+	scanErrors   []error
 }
 
 func scanRDSClusterRepositories(
@@ -22,13 +22,13 @@ func scanRDSClusterRepositories(
 	awsClient *awsClient,
 ) scanResponse {
 	repositories := []scan.Repository{}
-	var scanErrors error
+	var scanErrors []error
 	rdsClusters, err := awsClient.getRDSClusters(ctx)
 	if err != nil {
-		scanErrors = fmt.Errorf(
+		scanErrors = append(scanErrors, fmt.Errorf(
 			"error scanning RDS clusters: %w",
 			err,
-		)
+		))
 	}
 	for _, cluster := range rdsClusters {
 		repositories = append(
@@ -47,13 +47,13 @@ func scanRDSInstanceRepositories(
 	awsClient *awsClient,
 ) scanResponse {
 	repositories := []scan.Repository{}
-	var scanErrors error
+	var scanErrors []error
 	rdsInstances, err := awsClient.getRDSInstances(ctx)
 	if err != nil {
-		scanErrors = fmt.Errorf(
+		scanErrors = append(scanErrors, fmt.Errorf(
 			"error scanning RDS instances: %w",
 			err,
-		)
+		))
 	}
 	for _, instance := range rdsInstances {
 		// Skip cluster instances, since they were already added when retrieving
@@ -76,13 +76,13 @@ func scanRedshiftRepositories(
 	awsClient *awsClient,
 ) scanResponse {
 	repositories := []scan.Repository{}
-	var scanErrors error
+	var scanErrors []error
 	redshiftClusters, err := awsClient.getRedshiftClusters(ctx)
 	if err != nil {
-		scanErrors = fmt.Errorf(
+		scanErrors = append(scanErrors, fmt.Errorf(
 			"error scanning Redshift clusters: %w",
 			err,
-		)
+		))
 	}
 	for _, cluster := range redshiftClusters {
 		repositories = append(
@@ -101,13 +101,13 @@ func scanDynamoDBRepositories(
 	awsClient *awsClient,
 ) scanResponse {
 	repositories := []scan.Repository{}
-	var scanErrors error
+	var scanErrors []error
 	dynamodbTables, err := awsClient.getDynamoDBTables(ctx)
 	if err != nil {
-		scanErrors = fmt.Errorf(
+		scanErrors = append(scanErrors, fmt.Errorf(
 			"error scanning DynamoDB tables: %w",
 			err,
-		)
+		))
 	}
 	for _, table := range dynamodbTables {
 		repositories = append(

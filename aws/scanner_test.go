@@ -284,6 +284,7 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 		scannerConfig: ScannerConfig{
 			Regions: []string{
 				"us-east-1",
+				"us-east-2",
 			},
 			AssumeRole: &AssumeRoleConfig{
 				IAMRoleARN: "arn:aws:iam::123456789012:role/SomeIAMRole",
@@ -320,12 +321,11 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 	expectedResults := &scan.ScanResults{
 		Repositories: []scan.Repository{},
 	}
-	expectedErrorSubstring := dummyError.Error()
 
 	require.ElementsMatch(
 		s.T(),
 		expectedResults.Repositories,
 		results.Repositories,
 	)
-	require.ErrorContains(s.T(), err, expectedErrorSubstring)
+	require.ErrorIs(s.T(), err, dummyError)
 }

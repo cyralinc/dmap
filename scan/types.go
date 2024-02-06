@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+// RepoType defines the AWS data repository types supported (e.g. RDS, Redshift,
+// DynamoDB, etc).
 type RepoType string
 
 const (
@@ -13,6 +15,7 @@ const (
 	RepoTypeDynamoDB RepoType = "REPO_TYPE_DYNAMODB"
 )
 
+// Repository represents a scanned data repository.
 type Repository struct {
 	Id         string
 	Name       string
@@ -22,6 +25,8 @@ type Repository struct {
 	Properties any
 }
 
+// ScanResults represents the results of a repository scan, including all the
+// data repositories that were scanned.
 type ScanResults struct {
 	Repositories []Repository
 }

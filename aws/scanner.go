@@ -14,6 +14,9 @@ import (
 	"github.com/cyralinc/dmap/scan"
 )
 
+// AWSScanner is an implementation of the Scanner interface for the AWS cloud
+// provider. It supports scanning data repositories from multiple AWS regions,
+// including RDS clusters and instances, Redshift clusters and DynamoDB tables.
 type AWSScanner struct {
 	scannerConfig        ScannerConfig
 	awsConfig            aws.Config
@@ -23,6 +26,10 @@ type AWSScanner struct {
 // AWSScanner implements scan.Scanner
 var _ scan.Scanner = (*AWSScanner)(nil)
 
+// NewAWSScanner creates a new instance of AWSScanner based on the ScannerConfig.
+// If AssumeRoleConfig is specified, the AWSScanner will assume this IAM Role
+// and use it during service requests. If AssumeRoleConfig is nil, the AWSScanner
+// will use the AWS default external configuration.
 func NewAWSScanner(
 	ctx context.Context,
 	scannerConfig ScannerConfig,
@@ -47,6 +54,9 @@ func NewAWSScanner(
 	return s, nil
 }
 
+// Scan performs a scan across all the AWS regions configured and return a scan
+// results, containing a list of data repositories that includes: RDS clusters
+// and instances, Redshift clusters and DynamoDB tables.
 func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	repositories := []scan.Repository{}
 	var errs []error

@@ -89,7 +89,7 @@ func newRepositoryFromDynamoDBTable(
 	}
 
 	return scan.Repository{
-		Id:         aws.ToString(table.Table.TableId),
+		Id:         aws.ToString(table.Table.TableArn),
 		Name:       aws.ToString(table.Table.TableName),
 		CreatedAt:  aws.ToTime(table.Table.CreationDateTime),
 		Type:       scan.RepoTypeDynamoDB,

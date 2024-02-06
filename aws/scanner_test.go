@@ -29,35 +29,44 @@ type AWSScannerTestSuite struct {
 func (s *AWSScannerTestSuite) SetupSuite() {
 	s.dummyRDSClusters = []rdsTypes.DBCluster{
 		{
+			DBClusterArn:        aws.String("dummy-arn-1"),
 			DBClusterIdentifier: aws.String("rds-cluster-1"),
 		},
 		{
+			DBClusterArn:        aws.String("dummy-arn-2"),
 			DBClusterIdentifier: aws.String("rds-cluster-2"),
 		},
 		{
+			DBClusterArn:        aws.String("dummy-arn-3"),
 			DBClusterIdentifier: aws.String("rds-cluster-3"),
 		},
 	}
 	s.dummyRDSInstances = []rdsTypes.DBInstance{
 		{
+			DBInstanceArn:        aws.String("dummy-arn-1"),
 			DBInstanceIdentifier: aws.String("rds-instance-1"),
 		},
 		{
+			DBInstanceArn:        aws.String("dummy-arn-2"),
 			DBInstanceIdentifier: aws.String("rds-instance-2"),
 		},
 		{
+			DBInstanceArn:        aws.String("dummy-arn-3"),
 			DBInstanceIdentifier: aws.String("rds-instance-3"),
 		},
 	}
 	s.dummyRedshiftClusters = []redshiftTypes.Cluster{
 		{
-			ClusterIdentifier: aws.String("redshift-cluster-1"),
+			ClusterNamespaceArn: aws.String("dummy-arn-1"),
+			ClusterIdentifier:   aws.String("redshift-cluster-1"),
 		},
 		{
-			ClusterIdentifier: aws.String("redshift-cluster-2"),
+			ClusterNamespaceArn: aws.String("dummy-arn-2"),
+			ClusterIdentifier:   aws.String("redshift-cluster-2"),
 		},
 		{
-			ClusterIdentifier: aws.String("redshift-cluster-3"),
+			ClusterNamespaceArn: aws.String("dummy-arn-3"),
+			ClusterIdentifier:   aws.String("redshift-cluster-3"),
 		},
 	}
 	s.dummyDynamoDBTableNames = []string{
@@ -66,13 +75,16 @@ func (s *AWSScannerTestSuite) SetupSuite() {
 		"dynamodb-table-3",
 	}
 	s.dummyDynamoDBTable = map[string]*types.TableDescription{
-		s.dummyDynamoDBTableNames[0]: &types.TableDescription{
+		s.dummyDynamoDBTableNames[0]: {
+			TableArn:  aws.String("dummy-arn-1"),
 			TableName: aws.String(s.dummyDynamoDBTableNames[0]),
 		},
-		s.dummyDynamoDBTableNames[1]: &types.TableDescription{
+		s.dummyDynamoDBTableNames[1]: {
+			TableArn:  aws.String("dummy-arn-2"),
 			TableName: aws.String(s.dummyDynamoDBTableNames[1]),
 		},
-		s.dummyDynamoDBTableNames[2]: &types.TableDescription{
+		s.dummyDynamoDBTableNames[2]: {
+			TableArn:  aws.String("dummy-arn-3"),
 			TableName: aws.String(s.dummyDynamoDBTableNames[2]),
 		},
 	}
@@ -133,60 +145,70 @@ func (s *AWSScannerTestSuite) TestScan() {
 	expectedResults := &scan.ScanResults{
 		Repositories: []scan.Repository{
 			{
+				Id:         *s.dummyRDSClusters[0].DBClusterArn,
 				Name:       *s.dummyRDSClusters[0].DBClusterIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSClusters[0],
 			},
 			{
+				Id:         *s.dummyRDSClusters[1].DBClusterArn,
 				Name:       *s.dummyRDSClusters[1].DBClusterIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSClusters[1],
 			},
 			{
+				Id:         *s.dummyRDSClusters[2].DBClusterArn,
 				Name:       *s.dummyRDSClusters[2].DBClusterIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSClusters[2],
 			},
 			{
+				Id:         *s.dummyRDSInstances[0].DBInstanceArn,
 				Name:       *s.dummyRDSInstances[0].DBInstanceIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSInstances[0],
 			},
 			{
+				Id:         *s.dummyRDSInstances[1].DBInstanceArn,
 				Name:       *s.dummyRDSInstances[1].DBInstanceIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSInstances[1],
 			},
 			{
+				Id:         *s.dummyRDSInstances[2].DBInstanceArn,
 				Name:       *s.dummyRDSInstances[2].DBInstanceIdentifier,
 				Type:       scan.RepoTypeRDS,
 				Tags:       []string{},
 				Properties: s.dummyRDSInstances[2],
 			},
 			{
+				Id:         *s.dummyRedshiftClusters[0].ClusterNamespaceArn,
 				Name:       *s.dummyRedshiftClusters[0].ClusterIdentifier,
 				Type:       scan.RepoTypeRedshift,
 				Tags:       []string{},
 				Properties: s.dummyRedshiftClusters[0],
 			},
 			{
+				Id:         *s.dummyRedshiftClusters[1].ClusterNamespaceArn,
 				Name:       *s.dummyRedshiftClusters[1].ClusterIdentifier,
 				Type:       scan.RepoTypeRedshift,
 				Tags:       []string{},
 				Properties: s.dummyRedshiftClusters[1],
 			},
 			{
+				Id:         *s.dummyRedshiftClusters[2].ClusterNamespaceArn,
 				Name:       *s.dummyRedshiftClusters[2].ClusterIdentifier,
 				Type:       scan.RepoTypeRedshift,
 				Tags:       []string{},
 				Properties: s.dummyRedshiftClusters[2],
 			},
 			{
+				Id:   *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[0]].TableArn,
 				Name: s.dummyDynamoDBTableNames[0],
 				Type: scan.RepoTypeDynamoDB,
 				Tags: []string{
@@ -206,6 +228,7 @@ func (s *AWSScannerTestSuite) TestScan() {
 				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[0]],
 			},
 			{
+				Id:   *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[1]].TableArn,
 				Name: s.dummyDynamoDBTableNames[1],
 				Type: scan.RepoTypeDynamoDB,
 				Tags: []string{
@@ -225,6 +248,7 @@ func (s *AWSScannerTestSuite) TestScan() {
 				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[1]],
 			},
 			{
+				Id:   *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[2]].TableArn,
 				Name: s.dummyDynamoDBTableNames[2],
 				Type: scan.RepoTypeDynamoDB,
 				Tags: []string{

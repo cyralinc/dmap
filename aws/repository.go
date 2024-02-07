@@ -15,11 +15,7 @@ func newRepositoryFromRDSCluster(
 ) scan.Repository {
 	tags := make([]string, 0, len(cluster.TagList))
 	for _, tag := range cluster.TagList {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
+		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
 
 	return scan.Repository{
@@ -37,11 +33,7 @@ func newRepositoryFromRDSInstance(
 ) scan.Repository {
 	tags := make([]string, 0, len(instance.TagList))
 	for _, tag := range instance.TagList {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
+		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
 
 	return scan.Repository{
@@ -59,11 +51,7 @@ func newRepositoryFromRedshiftCluster(
 ) scan.Repository {
 	tags := make([]string, 0, len(cluster.Tags))
 	for _, tag := range cluster.Tags {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
+		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
 
 	return scan.Repository{
@@ -81,11 +69,7 @@ func newRepositoryFromDynamoDBTable(
 ) scan.Repository {
 	tags := make([]string, 0, len(table.Tags))
 	for _, tag := range table.Tags {
-		tags = append(tags, fmt.Sprintf(
-			"%s:%s",
-			aws.ToString(tag.Key),
-			aws.ToString(tag.Value),
-		))
+		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
 
 	return scan.Repository{
@@ -96,4 +80,12 @@ func newRepositoryFromDynamoDBTable(
 		Tags:       tags,
 		Properties: table.Table,
 	}
+}
+
+func formatTag(key, value *string) string {
+	return fmt.Sprintf(
+		"%s:%s",
+		aws.ToString(key),
+		aws.ToString(value),
+	)
 }

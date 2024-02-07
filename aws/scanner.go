@@ -61,10 +61,9 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	repositories := []scan.Repository{}
 	var scanErrors []error
 
-	numRoutines := len(s.scannerConfig.Regions)
-	responseChan := make(chan scanResponse, numRoutines)
+	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup
-	wg.Add(numRoutines)
+	wg.Add(len(s.scannerConfig.Regions))
 
 	for i := range s.scannerConfig.Regions {
 		go func(region string) {
@@ -74,8 +73,10 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		}(s.scannerConfig.Regions[i])
 	}
 
-	wg.Wait()
-	close(responseChan)
+	go func() {
+		wg.Wait()
+		close(responseChan)
+	}()
 
 	for response := range responseChan {
 		repositories = append(repositories, response.repositories...)
@@ -108,10 +109,9 @@ func scanRegion(
 		scanDynamoDBRepositories,
 	}
 
-	numRoutines := len(scanFunctions)
-	responseChan := make(chan scanResponse, numRoutines)
+	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup
-	wg.Add(numRoutines)
+	wg.Add(len(scanFunctions))
 
 	for i := range scanFunctions {
 		go func(scanFunc scanFunction) {
@@ -121,8 +121,10 @@ func scanRegion(
 		}(scanFunctions[i])
 	}
 
-	wg.Wait()
-	close(responseChan)
+	go func() {
+		wg.Wait()
+		close(responseChan)
+	}()
 
 	for response := range responseChan {
 		repositories = append(repositories, response.repositories...)

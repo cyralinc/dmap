@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/docdb"
+	docdbTypes "github.com/aws/aws-sdk-go-v2/service/docdb/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
@@ -51,11 +53,32 @@ type dynamoDBClient interface {
 	) (*dynamodb.ListTagsOfResourceOutput, error)
 }
 
+type documentDBClient interface {
+	DescribeDBClusters(
+		ctx context.Context,
+		params *docdb.DescribeDBClustersInput,
+		optFns ...func(*docdb.Options),
+	) (*docdb.DescribeDBClustersOutput, error)
+
+	DescribeDBInstances(
+		ctx context.Context,
+		params *docdb.DescribeDBInstancesInput,
+		optFns ...func(*docdb.Options),
+	) (*docdb.DescribeDBInstancesOutput, error)
+
+	ListTagsForResource(
+		ctx context.Context,
+		params *docdb.ListTagsForResourceInput,
+		optFns ...func(*docdb.Options),
+	) (*docdb.ListTagsForResourceOutput, error)
+}
+
 type awsClient struct {
 	config   aws.Config
 	rds      rdsClient
 	redshift redshiftClient
 	dynamodb dynamoDBClient
+	docdb    documentDBClient
 }
 
 type awsClientConstructor func(awsConfig aws.Config) *awsClient
@@ -66,6 +89,7 @@ func newAWSClient(awsConfig aws.Config) *awsClient {
 		rds:      rds.NewFromConfig(awsConfig),
 		redshift: redshift.NewFromConfig(awsConfig),
 		dynamodb: dynamodb.NewFromConfig(awsConfig),
+		docdb:    docdb.NewFromConfig(awsConfig),
 	}
 }
 
@@ -228,4 +252,142 @@ func (c *awsClient) getDynamoDBTables(
 		})
 	}
 	return tables, nil
+}
+
+type docdbCluster struct {
+	cluster docdbTypes.DBCluster
+	tags    []string
+}
+
+func (c *awsClient) getDocumentDBClusters(
+	ctx context.Context,
+) ([]docdbCluster, error) {
+	// First we need to fetch all clusters. These have a bunch of information, but
+	// not all that we need.
+	clusters := []docdbTypes.DBCluster{}
+	var marker *string // Used for pagination
+	for {
+		output, err := c.docdb.DescribeDBClusters(
+			ctx,
+			&docdb.DescribeDBClustersInput{
+				Filters: []docdbTypes.Filter{
+					{
+						Name:   aws.String("engine"),
+						Values: []string{"docdb"},
+					},
+				},
+				Marker: marker,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		clusters = append(clusters, output.DBClusters...)
+
+		if output.Marker == nil {
+			break
+		} else {
+			marker = output.Marker
+		}
+	}
+
+	// OK, we now have all the clusters. We can iterate through them, fetching
+	// all instances.
+
+	// Map from cluster ARN to all its instances
+	instances := make(map[string][]docdbTypes.DBInstance, len(clusters))
+	for i := range clusters {
+		// Using an index here in order to avoid copying the DBCluster struct
+		clusterARN := clusters[i].DBClusterArn
+		var marker *string
+		for {
+			output, err := c.docdb.DescribeDBInstances(
+				ctx,
+				&docdb.DescribeDBInstancesInput{
+					Filters: []docdbTypes.Filter{
+						{
+							Name:   aws.String("db-cluster-id"),
+							Values: []string{*clusterARN},
+						},
+					},
+					Marker: marker,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := instances[*clusterARN]
+			if !ok {
+				instances[*clusterARN] = make([]docdbTypes.DBInstance, 0, len(output.DBInstances))
+			}
+			instances[*clusterARN] = append(instances[*clusterARN], output.DBInstances...)
+
+			if output.Marker == nil {
+				break
+			} else {
+				marker = output.Marker
+			}
+		}
+	}
+
+	// We now have all clusters and a map from clusters to instances. We're just missing
+	// all the tags, so get them now
+
+	// Map from cluster ARN to all the cluster and instance tags
+	tags := make(map[string][]string, len(instances))
+	for i := range clusters {
+		clusterARN := clusters[i].DBClusterArn
+		output, err := c.docdb.ListTagsForResource(
+			ctx,
+			&docdb.ListTagsForResourceInput{
+				ResourceName: clusters[i].DBClusterArn,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		formattedTags := make([]string, len(output.TagList))
+		for i, tag := range output.TagList {
+			formattedTags[i] = formatTag(tag.Key, tag.Value)
+		}
+
+		tags[*clusterARN] = formattedTags
+
+		// Now do the same for every instance
+		for i := range instances[*clusterARN] {
+			output, err = c.docdb.ListTagsForResource(
+				ctx,
+				&docdb.ListTagsForResourceInput{
+					ResourceName: instances[*clusterARN][i].DBInstanceArn,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, tag := range output.TagList {
+				tags[*clusterARN] = append(tags[*clusterARN], formatTag(tag.Key, tag.Value))
+			}
+		}
+	}
+
+	// Phew, that was a lot of work, but we have all that we wanted:
+	// All clusters in the <clusters> variable
+	// A map from cluster ARN to instances, in the <instances> variable
+	// A map from cluster ARN to tags, in the <tags> variable
+	ret := make([]docdbCluster, len(tags))
+	for i := range clusters {
+		clusterARN := clusters[i].DBClusterArn
+		clusterTags := tags[*clusterARN]
+
+		ret[i] = docdbCluster{
+			cluster: clusters[i],
+			tags:    clusterTags,
+		}
+	}
+
+	return ret, nil
 }

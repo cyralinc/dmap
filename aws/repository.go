@@ -89,3 +89,16 @@ func formatTag(key, value *string) string {
 		aws.ToString(value),
 	)
 }
+
+func newRepositoryFromDocumentDBCluster(
+	cluster docdbCluster,
+) scan.Repository {
+	return scan.Repository{
+		Id:         *cluster.cluster.DBClusterArn,
+		Name:       *cluster.cluster.DBClusterIdentifier,
+		Type:       scan.RepoTypeDocumentDB,
+		CreatedAt:  *cluster.cluster.ClusterCreateTime,
+		Tags:       cluster.tags,
+		Properties: cluster.cluster.DBClusterMembers,
+	}
+}

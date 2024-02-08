@@ -1,7 +1,10 @@
-all: tidy test
+all: tidy lint test
 
 tidy:
 	go mod tidy
+
+lint:
+	golangci-lint run
 
 # Using --count=1 disables test caching
 test:

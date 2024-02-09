@@ -146,3 +146,31 @@ func scanDocumentDBRepositories(
 		scanErrors:   scanErrors,
 	}
 }
+
+func scanS3Buckets(
+	ctx context.Context,
+	awsClient *awsClient,
+) scanResponse {
+	repos := []scan.Repository{}
+	var scanErrors []error
+
+	buckets, err := awsClient.getS3Buckets(ctx)
+	if err != nil {
+		scanErrors = append(
+			scanErrors,
+			fmt.Errorf("error scanning S3 buckets: %w", err),
+		)
+	}
+
+	for _, bucket := range buckets {
+		repos = append(
+			repos,
+			newRepositoryFromS3Bucket(bucket),
+		)
+	}
+
+	return scanResponse{
+		repositories: repos,
+		scanErrors:   scanErrors,
+	}
+}

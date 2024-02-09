@@ -68,7 +68,14 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		go func(region string) {
 			defer wg.Done()
 			response := scanRegion(ctx, s.awsConfig, region, s.awsClientConstructor)
-			responseChan <- response
+
+			select {
+			case responseChan <- response:
+			// NOOP
+
+			case <-ctx.Done():
+				return
+			}
 		}(s.scannerConfig.Regions[i])
 	}
 
@@ -77,20 +84,30 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		close(responseChan)
 	}()
 
-	for response := range responseChan {
-		repositories = append(repositories, response.repositories...)
-		scanErrors = append(scanErrors, response.scanErrors...)
-	}
+	for {
+		select {
+		case <-ctx.Done():
+			scanErrors = append(scanErrors, ctx.Err())
+			return &scan.ScanResults{
+				Repositories: repositories,
+			}, &scan.ScanError{Errs: scanErrors}
 
-	scanResults := &scan.ScanResults{
-		Repositories: repositories,
-	}
+		case response, ok := <-responseChan:
+			if !ok {
+				// Channel closed, all scans finished.
+				var scanErr error
+				if len(scanErrors) > 0 {
+					scanErr = &scan.ScanError{Errs: scanErrors}
+				}
+				return &scan.ScanResults{
+					Repositories: repositories,
+				}, scanErr
 
-	var scanErr error
-	if len(scanErrors) > 0 {
-		scanErr = &scan.ScanError{Errs: scanErrors}
+			}
+			repositories = append(repositories, response.repositories...)
+			scanErrors = append(scanErrors, response.scanErrors...)
+		}
 	}
-	return scanResults, scanErr
 }
 
 func scanRegion(
@@ -120,7 +137,14 @@ func scanRegion(
 		go func(scanFunc scanFunction) {
 			defer wg.Done()
 			response := scanFunc(ctx, awsClient)
-			responseChan <- response
+
+			select {
+			case responseChan <- response:
+			// NOOP
+
+			case <-ctx.Done():
+				return
+			}
 		}(scanFunctions[i])
 	}
 
@@ -129,14 +153,27 @@ func scanRegion(
 		close(responseChan)
 	}()
 
-	for response := range responseChan {
-		repositories = append(repositories, response.repositories...)
-		scanErrors = append(scanErrors, response.scanErrors...)
-	}
+	for {
+		select {
+		case <-ctx.Done():
+			scanErrors = append(scanErrors, ctx.Err())
+			return scanResponse{
+				repositories: repositories,
+				scanErrors:   scanErrors,
+			}
 
-	return scanResponse{
-		repositories: repositories,
-		scanErrors:   scanErrors,
+		case response, ok := <-responseChan:
+			if !ok {
+				// Channel closed
+				return scanResponse{
+					repositories: repositories,
+					scanErrors:   scanErrors,
+				}
+			}
+
+			repositories = append(repositories, response.repositories...)
+			scanErrors = append(scanErrors, response.scanErrors...)
+		}
 	}
 }
 

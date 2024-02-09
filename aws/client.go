@@ -10,6 +10,7 @@ import (
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	rsTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type rdsClient interface {
@@ -56,6 +57,7 @@ type awsClient struct {
 	rds      rdsClient
 	redshift redshiftClient
 	dynamodb dynamoDBClient
+	sts      *sts.Client
 }
 
 type awsClientConstructor func(awsConfig aws.Config) *awsClient
@@ -66,6 +68,7 @@ func newAWSClient(awsConfig aws.Config) *awsClient {
 		rds:      rds.NewFromConfig(awsConfig),
 		redshift: redshift.NewFromConfig(awsConfig),
 		dynamodb: dynamodb.NewFromConfig(awsConfig),
+		sts: sts.NewFromConfig(awsConfig),
 	}
 }
 

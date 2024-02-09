@@ -2,7 +2,6 @@ package aws
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -87,7 +86,11 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		Repositories: repositories,
 	}
 
-	return scanResults, errors.Join(scanErrors...)
+	var scanErr error
+	if len(scanErrors) > 0 {
+		scanErr = &scan.ScanError{Errs: scanErrors}
+	}
+	return scanResults, scanErr
 }
 
 func scanRegion(

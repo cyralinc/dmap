@@ -2,6 +2,7 @@ package scan
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -38,4 +39,24 @@ type Repository struct {
 // data repositories that were scanned.
 type ScanResults struct {
 	Repositories []Repository
+}
+
+// ScanError is an error type that represents a collection of errors that
+// occurred during the scanning process.
+type ScanError struct {
+	Errs []error
+}
+
+func (e *ScanError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return errors.Join(e.Errs...).Error()
+}
+
+func (e *ScanError) Unwrap() []error {
+	if e == nil {
+		return nil
+	}
+	return e.Errs
 }

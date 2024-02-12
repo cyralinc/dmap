@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.27.1
 	github.com/aws/aws-sdk-go-v2/service/rds v1.69.0
-	github.com/aws/aws-sdk-go-v2/service/redshift v1.39.8
+	github.com/aws/aws-sdk-go-v2/service/redshift v1.40.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7
 	github.com/stretchr/testify v1.8.4
 )

@@ -69,10 +69,9 @@ func (m *MockRDSClient) DescribeDBInstances(
 }
 
 type MockDocumentDBClient struct {
-	Clusters  []docdbTypes.DBCluster
-	Instances []docdbTypes.DBInstance
-	Tags      []docdbTypes.Tag
-	Errors    map[string]error
+	Clusters []docdbTypes.DBCluster
+	Tags     []docdbTypes.Tag
+	Errors   map[string]error
 }
 
 func (m *MockDocumentDBClient) DescribeDBClusters(
@@ -98,32 +97,6 @@ func (m *MockDocumentDBClient) DescribeDBClusters(
 	return &docdb.DescribeDBClustersOutput{
 		DBClusters: []docdbTypes.DBCluster{
 			m.Clusters[2],
-		},
-	}, nil
-}
-
-func (m *MockDocumentDBClient) DescribeDBInstances(
-	ctx context.Context,
-	params *docdb.DescribeDBInstancesInput,
-	optFns ...func(*docdb.Options),
-) (*docdb.DescribeDBInstancesOutput, error) {
-	if m.Errors["DescribeDBInstances"] != nil {
-		return nil, m.Errors["DescribeDBInstances"]
-	}
-
-	if params.Marker == nil {
-		return &docdb.DescribeDBInstancesOutput{
-			DBInstances: []docdbTypes.DBInstance{
-				m.Instances[0],
-				m.Instances[1],
-			},
-			Marker: aws.String("2"),
-		}, nil
-	}
-
-	return &docdb.DescribeDBInstancesOutput{
-		DBInstances: []docdbTypes.DBInstance{
-			m.Instances[2],
 		},
 	}, nil
 }

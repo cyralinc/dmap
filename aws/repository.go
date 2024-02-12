@@ -99,6 +99,6 @@ func newRepositoryFromDocumentDBCluster(
 		Type:       scan.RepoTypeDocumentDB,
 		CreatedAt:  *cluster.cluster.ClusterCreateTime,
 		Tags:       cluster.tags,
-		Properties: cluster.cluster.DBClusterMembers,
+		Properties: cluster.cluster,
 	}
 }

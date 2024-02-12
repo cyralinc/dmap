@@ -30,9 +30,8 @@ type AWSScannerTestSuite struct {
 	dummyDynamoDBTable      map[string]*types.TableDescription
 	dummyDynamoDBTags       []types.Tag
 
-	dummyDocumentDBClusters  []docdbTypes.DBCluster
-	dummyDocumentDBInstances []docdbTypes.DBInstance
-	dummyDocumentDBTags      []docdbTypes.Tag
+	dummyDocumentDBClusters []docdbTypes.DBCluster
+	dummyDocumentDBTags     []docdbTypes.Tag
 }
 
 func (s *AWSScannerTestSuite) SetupSuite() {
@@ -117,51 +116,16 @@ func (s *AWSScannerTestSuite) SetupSuite() {
 			DBClusterArn:        aws.String("documentdb-arn-1"),
 			DBClusterIdentifier: aws.String("documentdb-cluster-1"),
 			ClusterCreateTime:   &time.Time{},
-			DBClusterMembers: []docdbTypes.DBClusterMember{
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-11"),
-				},
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-12"),
-				},
-			},
 		},
 		{
 			DBClusterArn:        aws.String("documentdb-arn-2"),
 			DBClusterIdentifier: aws.String("documentdb-cluster-2"),
 			ClusterCreateTime:   &time.Time{},
-			DBClusterMembers: []docdbTypes.DBClusterMember{
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-21"),
-				},
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-22"),
-				},
-			},
 		},
 		{
 			DBClusterArn:        aws.String("documentdb-arn-3"),
 			DBClusterIdentifier: aws.String("documentdb-cluster-3"),
 			ClusterCreateTime:   &time.Time{},
-			DBClusterMembers: []docdbTypes.DBClusterMember{
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-31"),
-				},
-				{
-					DBInstanceIdentifier: aws.String("documentdb-instance-32"),
-				},
-			},
-		},
-	}
-	s.dummyDocumentDBInstances = []docdbTypes.DBInstance{
-		{
-			DBInstanceArn: aws.String("docdbInstanceARN1"),
-		},
-		{
-			DBInstanceArn: aws.String("docdbInstanceARN2"),
-		},
-		{
-			DBInstanceArn: aws.String("docdbInstanceARN3"),
 		},
 	}
 	s.dummyDocumentDBTags = []docdbTypes.Tag{
@@ -205,9 +169,8 @@ func (s *AWSScannerTestSuite) TestScan() {
 					Tags:       s.dummyDynamoDBTags,
 				},
 				docdb: &mock.MockDocumentDBClient{
-					Clusters:  s.dummyDocumentDBClusters,
-					Instances: s.dummyDocumentDBInstances,
-					Tags:      s.dummyDocumentDBTags,
+					Clusters: s.dummyDocumentDBClusters,
+					Tags:     s.dummyDocumentDBTags,
 				},
 			}
 		},
@@ -350,20 +313,8 @@ func (s *AWSScannerTestSuite) TestScan() {
 						"%s:%s",
 						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
 					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
 				},
-				Properties: s.dummyDocumentDBClusters[0].DBClusterMembers,
+				Properties: s.dummyDocumentDBClusters[0],
 			},
 			{
 				Id:        *s.dummyDocumentDBClusters[1].DBClusterArn,
@@ -375,20 +326,8 @@ func (s *AWSScannerTestSuite) TestScan() {
 						"%s:%s",
 						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
 					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
 				},
-				Properties: s.dummyDocumentDBClusters[1].DBClusterMembers,
+				Properties: s.dummyDocumentDBClusters[1],
 			},
 			{
 				Id:        *s.dummyDocumentDBClusters[2].DBClusterArn,
@@ -400,20 +339,8 @@ func (s *AWSScannerTestSuite) TestScan() {
 						"%s:%s",
 						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
 					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
 				},
-				Properties: s.dummyDocumentDBClusters[2].DBClusterMembers,
+				Properties: s.dummyDocumentDBClusters[2],
 			},
 		},
 	}

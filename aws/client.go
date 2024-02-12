@@ -60,12 +60,6 @@ type documentDBClient interface {
 		optFns ...func(*docdb.Options),
 	) (*docdb.DescribeDBClustersOutput, error)
 
-	DescribeDBInstances(
-		ctx context.Context,
-		params *docdb.DescribeDBInstancesInput,
-		optFns ...func(*docdb.Options),
-	) (*docdb.DescribeDBInstancesOutput, error)
-
 	ListTagsForResource(
 		ctx context.Context,
 		params *docdb.ListTagsForResourceInput,
@@ -293,50 +287,10 @@ func (c *awsClient) getDocumentDBClusters(
 	}
 
 	// OK, we now have all the clusters. We can iterate through them, fetching
-	// all instances.
-
-	// Map from cluster ARN to all its instances
-	instances := make(map[string][]docdbTypes.DBInstance, len(clusters))
-	for i := range clusters {
-		// Using an index here in order to avoid copying the DBCluster struct
-		clusterARN := clusters[i].DBClusterArn
-		var marker *string
-		for {
-			output, err := c.docdb.DescribeDBInstances(
-				ctx,
-				&docdb.DescribeDBInstancesInput{
-					Filters: []docdbTypes.Filter{
-						{
-							Name:   aws.String("db-cluster-id"),
-							Values: []string{*clusterARN},
-						},
-					},
-					Marker: marker,
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			_, ok := instances[*clusterARN]
-			if !ok {
-				instances[*clusterARN] = make([]docdbTypes.DBInstance, 0, len(output.DBInstances))
-			}
-			instances[*clusterARN] = append(instances[*clusterARN], output.DBInstances...)
-
-			if output.Marker == nil {
-				break
-			} else {
-				marker = output.Marker
-			}
-		}
-	}
-
-	// We now have all clusters and a map from clusters to instances. We're just missing
-	// all the tags, so get them now
+	// all their tags
 
 	// Map from cluster ARN to all the cluster and instance tags
-	tags := make(map[string][]string, len(instances))
+	tags := make(map[string][]string, len(clusters))
 	for i := range clusters {
 		clusterARN := clusters[i].DBClusterArn
 		output, err := c.docdb.ListTagsForResource(
@@ -355,23 +309,6 @@ func (c *awsClient) getDocumentDBClusters(
 		}
 
 		tags[*clusterARN] = formattedTags
-
-		// Now do the same for every instance
-		for i := range instances[*clusterARN] {
-			output, err = c.docdb.ListTagsForResource(
-				ctx,
-				&docdb.ListTagsForResourceInput{
-					ResourceName: instances[*clusterARN][i].DBInstanceArn,
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, tag := range output.TagList {
-				tags[*clusterARN] = append(tags[*clusterARN], formatTag(tag.Key, tag.Value))
-			}
-		}
 	}
 
 	// Phew, that was a lot of work, but we have all that we wanted:

@@ -102,3 +102,19 @@ func newRepositoryFromDocumentDBCluster(
 		Properties: cluster.cluster,
 	}
 }
+
+func bucketNameToARN(name string) string {
+	return fmt.Sprintf("arn:aws:s3:::%s", name)
+}
+
+func newRepositoryFromS3Bucket(
+	bucket S3Bucket,
+) scan.Repository {
+	return scan.Repository{
+		Id:        bucketNameToARN(*bucket.bucket.Name),
+		Name:      *bucket.bucket.Name,
+		Type:      scan.RepoTypeS3,
+		CreatedAt: *bucket.bucket.CreationDate,
+		Tags:      bucket.tags,
+	}
+}

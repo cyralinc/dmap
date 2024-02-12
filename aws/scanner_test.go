@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -32,6 +33,9 @@ type AWSScannerTestSuite struct {
 
 	dummyDocumentDBClusters []docdbTypes.DBCluster
 	dummyDocumentDBTags     []docdbTypes.Tag
+
+	dummyS3Buckets []s3Types.Bucket
+	dummyS3Tags    []s3Types.Tag
 }
 
 func (s *AWSScannerTestSuite) SetupSuite() {
@@ -134,6 +138,26 @@ func (s *AWSScannerTestSuite) SetupSuite() {
 			Value: aws.String("docdbValue1"),
 		},
 	}
+	s.dummyS3Buckets = []s3Types.Bucket{
+		{
+			Name:         aws.String("bucket_1"),
+			CreationDate: &time.Time{},
+		},
+		{
+			Name:         aws.String("bucket_2"),
+			CreationDate: &time.Time{},
+		},
+		{
+			Name:         aws.String("bucket_3"),
+			CreationDate: &time.Time{},
+		},
+	}
+	s.dummyS3Tags = []s3Types.Tag{
+		{
+			Key:   aws.String("s3tag1"),
+			Value: aws.String("s3value1"),
+		},
+	}
 }
 
 func TestAWSScanner(t *testing.T) {
@@ -171,6 +195,10 @@ func (s *AWSScannerTestSuite) TestScan() {
 				docdb: &mock.MockDocumentDBClient{
 					Clusters: s.dummyDocumentDBClusters,
 					Tags:     s.dummyDocumentDBTags,
+				},
+				s3: &mock.MockS3Client{
+					Buckets: s.dummyS3Buckets,
+					Tags:    s.dummyS3Tags,
 				},
 			}
 		},
@@ -342,6 +370,45 @@ func (s *AWSScannerTestSuite) TestScan() {
 				},
 				Properties: s.dummyDocumentDBClusters[2],
 			},
+			{
+				Id:        "arn:aws:s3:::bucket_1",
+				Name:      "bucket_1",
+				Type:      scan.RepoTypeS3,
+				CreatedAt: *s.dummyS3Buckets[0].CreationDate,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyS3Tags[0].Key,
+						*s.dummyS3Tags[0].Value,
+					),
+				},
+			},
+			{
+				Id:        "arn:aws:s3:::bucket_2",
+				Name:      "bucket_2",
+				Type:      scan.RepoTypeS3,
+				CreatedAt: *s.dummyS3Buckets[1].CreationDate,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyS3Tags[0].Key,
+						*s.dummyS3Tags[0].Value,
+					),
+				},
+			},
+			{
+				Id:        "arn:aws:s3:::bucket_3",
+				Name:      "bucket_3",
+				Type:      scan.RepoTypeS3,
+				CreatedAt: *s.dummyS3Buckets[2].CreationDate,
+				Tags: []string{
+					fmt.Sprintf(
+						"%s:%s",
+						*s.dummyS3Tags[0].Key,
+						*s.dummyS3Tags[0].Value,
+					),
+				},
+			},
 		},
 	}
 
@@ -392,6 +459,12 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 						"DescribeDBClusters":  dummyError,
 						"DescribeDBInstances": dummyError,
 						"ListTagsForResource": dummyError,
+					},
+				},
+				s3: &mock.MockS3Client{
+					Errors: map[string]error{
+						"ListBuckets":      dummyError,
+						"GetBucketTagging": dummyError,
 					},
 				},
 			}

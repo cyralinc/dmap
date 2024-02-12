@@ -128,6 +128,7 @@ func scanRegion(
 		scanRedshiftRepositories,
 		scanDynamoDBRepositories,
 		scanDocumentDBRepositories,
+		scanS3Buckets,
 	}
 
 	responseChan := make(chan scanResponse)

@@ -12,6 +12,8 @@ import (
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	rsTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type rdsClient interface {
@@ -67,12 +69,27 @@ type documentDBClient interface {
 	) (*docdb.ListTagsForResourceOutput, error)
 }
 
+type s3Client interface {
+	ListBuckets(
+		ctx context.Context,
+		params *s3.ListBucketsInput,
+		optFns ...func(*s3.Options),
+	) (*s3.ListBucketsOutput, error)
+
+	GetBucketTagging(
+		ctx context.Context,
+		params *s3.GetBucketTaggingInput,
+		optFns ...func(*s3.Options),
+	) (*s3.GetBucketTaggingOutput, error)
+}
+
 type awsClient struct {
 	config   aws.Config
 	rds      rdsClient
 	redshift redshiftClient
 	dynamodb dynamoDBClient
 	docdb    documentDBClient
+	s3       s3Client
 }
 
 type awsClientConstructor func(awsConfig aws.Config) *awsClient
@@ -84,6 +101,7 @@ func newAWSClient(awsConfig aws.Config) *awsClient {
 		redshift: redshift.NewFromConfig(awsConfig),
 		dynamodb: dynamodb.NewFromConfig(awsConfig),
 		docdb:    docdb.NewFromConfig(awsConfig),
+		s3:       s3.NewFromConfig(awsConfig),
 	}
 }
 
@@ -326,4 +344,53 @@ func (c *awsClient) getDocumentDBClusters(
 	}
 
 	return ret, nil
+}
+
+type S3Bucket struct {
+	bucket s3Types.Bucket
+	tags   []string
+}
+
+func (c *awsClient) getS3Buckets(
+	ctx context.Context,
+) ([]S3Bucket, error) {
+
+	tagSetToStringSlice := func(tags []s3Types.Tag) []string {
+		out := make([]string, len(tags))
+		for i, tag := range tags {
+			out[i] = formatTag(tag.Key, tag.Value)
+		}
+		return out
+	}
+
+	// First we fetch all the buckets
+	buckets, err := c.s3.ListBuckets(ctx, &s3.ListBucketsInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Then, for each bucket, we extract all tags
+	tagMap := make(map[string][]s3Types.Tag, len(buckets.Buckets))
+	for _, bucket := range buckets.Buckets {
+		tags, err := c.s3.GetBucketTagging(
+			ctx,
+			&s3.GetBucketTaggingInput{Bucket: bucket.Name},
+		)
+		if err != nil {
+			// For some buckets we get an error here. This is not fatal, it just means
+			// the bucket has no tags, AFAICT.
+			continue
+		}
+		tagMap[*bucket.Name] = tags.TagSet
+	}
+
+	// Finally, we build the expected return value
+	s3Buckets := make([]S3Bucket, len(buckets.Buckets))
+	for i, bucket := range buckets.Buckets {
+		s3Buckets[i] = S3Bucket{
+			bucket: bucket,
+			tags:   tagSetToStringSlice(tagMap[*bucket.Name]),
+		}
+	}
+	return s3Buckets, nil
 }

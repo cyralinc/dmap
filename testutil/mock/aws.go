@@ -12,6 +12,8 @@ import (
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type MockRDSClient struct {
@@ -112,6 +114,40 @@ func (m *MockDocumentDBClient) ListTagsForResource(
 
 	return &docdb.ListTagsForResourceOutput{
 		TagList: m.Tags,
+	}, nil
+}
+
+type MockS3Client struct {
+	Buckets []s3Types.Bucket
+	Tags    []s3Types.Tag
+	Errors  map[string]error
+}
+
+func (m *MockS3Client) ListBuckets(
+	ctx context.Context,
+	params *s3.ListBucketsInput,
+	optFns ...func(*s3.Options),
+) (*s3.ListBucketsOutput, error) {
+	if m.Errors["ListBuckets"] != nil {
+		return nil, m.Errors["ListBuckets"]
+	}
+
+	return &s3.ListBucketsOutput{
+		Buckets: m.Buckets,
+	}, nil
+}
+
+func (m *MockS3Client) GetBucketTagging(
+	ctx context.Context,
+	params *s3.GetBucketTaggingInput,
+	optFns ...func(*s3.Options),
+) (*s3.GetBucketTaggingOutput, error) {
+	if m.Errors["GetBucketTagging"] != nil {
+		return nil, m.Errors["GetBucketTagging"]
+	}
+
+	return &s3.GetBucketTaggingOutput{
+		TagSet: m.Tags,
 	}, nil
 }
 

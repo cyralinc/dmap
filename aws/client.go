@@ -313,7 +313,6 @@ func (c *awsClient) getDocumentDBClusters(
 
 	// Phew, that was a lot of work, but we have all that we wanted:
 	// All clusters in the <clusters> variable
-	// A map from cluster ARN to instances, in the <instances> variable
 	// A map from cluster ARN to tags, in the <tags> variable
 	ret := make([]docdbCluster, len(tags))
 	for i := range clusters {

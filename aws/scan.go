@@ -120,3 +120,29 @@ func scanDynamoDBRepositories(
 		scanErrors:   scanErrors,
 	}
 }
+
+func scanDocumentDBRepositories(
+	ctx context.Context,
+	awsClient *awsClient,
+) scanResponse {
+	repos := []scan.Repository{}
+	var scanErrors []error
+
+	clusters, err := awsClient.getDocumentDBClusters(ctx)
+	if err != nil {
+		scanErrors = append(
+			scanErrors,
+			fmt.Errorf("error scanning DocumentDB clusters: %w", err),
+		)
+	}
+	for _, cluster := range clusters {
+		repos = append(
+			repos,
+			newRepositoryFromDocumentDBCluster(cluster),
+		)
+	}
+	return scanResponse{
+		repositories: repos,
+		scanErrors:   scanErrors,
+	}
+}

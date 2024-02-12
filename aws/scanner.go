@@ -127,6 +127,7 @@ func scanRegion(
 		scanRDSInstanceRepositories,
 		scanRedshiftRepositories,
 		scanDynamoDBRepositories,
+		scanDocumentDBRepositories,
 	}
 
 	responseChan := make(chan scanResponse)

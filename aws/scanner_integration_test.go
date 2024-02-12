@@ -40,5 +40,5 @@ func (s *AWSScannerIntegrationTestSuite) TestScan() {
 	results, scanErrors := s.scanner.Scan(ctx)
 	fmt.Printf("Num. Repositories: %v\n", len(results.Repositories))
 	fmt.Printf("Repositories: %v\n", results.Repositories)
-	fmt.Printf("Scan Erros: %v\n", scanErrors)
+	fmt.Printf("Scan Errors: %v\n", scanErrors)
 }

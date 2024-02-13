@@ -90,19 +90,6 @@ func formatTag(key, value *string) string {
 	)
 }
 
-func newRepositoryFromDocumentDBCluster(
-	cluster docdbCluster,
-) scan.Repository {
-	return scan.Repository{
-		Id:         *cluster.cluster.DBClusterArn,
-		Name:       *cluster.cluster.DBClusterIdentifier,
-		Type:       scan.RepoTypeDocumentDB,
-		CreatedAt:  *cluster.cluster.ClusterCreateTime,
-		Tags:       cluster.tags,
-		Properties: cluster.cluster,
-	}
-}
-
 func bucketNameToARN(name string) string {
 	return fmt.Sprintf("arn:aws:s3:::%s", name)
 }

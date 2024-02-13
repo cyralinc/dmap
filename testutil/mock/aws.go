@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/docdb"
-	docdbTypes "github.com/aws/aws-sdk-go-v2/service/docdb/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
@@ -67,53 +65,6 @@ func (m *MockRDSClient) DescribeDBInstances(
 		DBInstances: []rdsTypes.DBInstance{
 			m.DBInstances[2],
 		},
-	}, nil
-}
-
-type MockDocumentDBClient struct {
-	Clusters []docdbTypes.DBCluster
-	Tags     []docdbTypes.Tag
-	Errors   map[string]error
-}
-
-func (m *MockDocumentDBClient) DescribeDBClusters(
-	ctx context.Context,
-	params *docdb.DescribeDBClustersInput,
-	optFns ...func(*docdb.Options),
-) (*docdb.DescribeDBClustersOutput, error) {
-
-	if m.Errors["DescribeDBClusters"] != nil {
-		return nil, m.Errors["DescribeDBClusters"]
-	}
-
-	if params.Marker == nil {
-		return &docdb.DescribeDBClustersOutput{
-			DBClusters: []docdbTypes.DBCluster{
-				m.Clusters[0],
-				m.Clusters[1],
-			},
-			Marker: aws.String("2"),
-		}, nil
-	}
-
-	return &docdb.DescribeDBClustersOutput{
-		DBClusters: []docdbTypes.DBCluster{
-			m.Clusters[2],
-		},
-	}, nil
-}
-
-func (m *MockDocumentDBClient) ListTagsForResource(
-	ctx context.Context,
-	params *docdb.ListTagsForResourceInput,
-	optFns ...func(*docdb.Options),
-) (*docdb.ListTagsForResourceOutput, error) {
-	if m.Errors["ListTagsForResource"] != nil {
-		return nil, m.Errors["ListTagsForResource"]
-	}
-
-	return &docdb.ListTagsForResourceOutput{
-		TagList: m.Tags,
 	}, nil
 }
 

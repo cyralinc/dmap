@@ -127,7 +127,6 @@ func scanRegion(
 		scanRDSInstanceRepositories,
 		scanRedshiftRepositories,
 		scanDynamoDBRepositories,
-		scanDocumentDBRepositories,
 		scanS3Buckets,
 	}
 

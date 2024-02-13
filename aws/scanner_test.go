@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	docdbTypes "github.com/aws/aws-sdk-go-v2/service/docdb/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
@@ -30,9 +29,6 @@ type AWSScannerTestSuite struct {
 	dummyDynamoDBTableNames []string
 	dummyDynamoDBTable      map[string]*types.TableDescription
 	dummyDynamoDBTags       []types.Tag
-
-	dummyDocumentDBClusters []docdbTypes.DBCluster
-	dummyDocumentDBTags     []docdbTypes.Tag
 
 	dummyS3Buckets []s3Types.Bucket
 	dummyS3Tags    []s3Types.Tag
@@ -114,30 +110,6 @@ func (s *AWSScannerTestSuite) SetupSuite() {
 			Value: aws.String("value3"),
 		},
 	}
-
-	s.dummyDocumentDBClusters = []docdbTypes.DBCluster{
-		{
-			DBClusterArn:        aws.String("documentdb-arn-1"),
-			DBClusterIdentifier: aws.String("documentdb-cluster-1"),
-			ClusterCreateTime:   &time.Time{},
-		},
-		{
-			DBClusterArn:        aws.String("documentdb-arn-2"),
-			DBClusterIdentifier: aws.String("documentdb-cluster-2"),
-			ClusterCreateTime:   &time.Time{},
-		},
-		{
-			DBClusterArn:        aws.String("documentdb-arn-3"),
-			DBClusterIdentifier: aws.String("documentdb-cluster-3"),
-			ClusterCreateTime:   &time.Time{},
-		},
-	}
-	s.dummyDocumentDBTags = []docdbTypes.Tag{
-		{
-			Key:   aws.String("docdbTag1"),
-			Value: aws.String("docdbValue1"),
-		},
-	}
 	s.dummyS3Buckets = []s3Types.Bucket{
 		{
 			Name:         aws.String("bucket_1"),
@@ -191,10 +163,6 @@ func (s *AWSScannerTestSuite) TestScan() {
 					TableNames: s.dummyDynamoDBTableNames,
 					Table:      s.dummyDynamoDBTable,
 					Tags:       s.dummyDynamoDBTags,
-				},
-				docdb: &mock.MockDocumentDBClient{
-					Clusters: s.dummyDocumentDBClusters,
-					Tags:     s.dummyDocumentDBTags,
 				},
 				s3: &mock.MockS3Client{
 					Buckets: s.dummyS3Buckets,
@@ -332,45 +300,6 @@ func (s *AWSScannerTestSuite) TestScan() {
 				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[2]],
 			},
 			{
-				Id:        *s.dummyDocumentDBClusters[0].DBClusterArn,
-				Name:      *s.dummyDocumentDBClusters[0].DBClusterIdentifier,
-				Type:      scan.RepoTypeDocumentDB,
-				CreatedAt: *s.dummyDocumentDBClusters[0].ClusterCreateTime,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-				},
-				Properties: s.dummyDocumentDBClusters[0],
-			},
-			{
-				Id:        *s.dummyDocumentDBClusters[1].DBClusterArn,
-				Name:      *s.dummyDocumentDBClusters[1].DBClusterIdentifier,
-				Type:      scan.RepoTypeDocumentDB,
-				CreatedAt: *s.dummyDocumentDBClusters[1].ClusterCreateTime,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-				},
-				Properties: s.dummyDocumentDBClusters[1],
-			},
-			{
-				Id:        *s.dummyDocumentDBClusters[2].DBClusterArn,
-				Name:      *s.dummyDocumentDBClusters[2].DBClusterIdentifier,
-				Type:      scan.RepoTypeDocumentDB,
-				CreatedAt: *s.dummyDocumentDBClusters[2].ClusterCreateTime,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyDocumentDBTags[0].Key, *s.dummyDocumentDBTags[0].Value,
-					),
-				},
-				Properties: s.dummyDocumentDBClusters[2],
-			},
-			{
 				Id:        "arn:aws:s3:::bucket_1",
 				Name:      "bucket_1",
 				Type:      scan.RepoTypeS3,
@@ -452,13 +381,6 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 				dynamodb: &mock.MockDynamoDBClient{
 					Errors: map[string]error{
 						"ListTables": dummyError,
-					},
-				},
-				docdb: &mock.MockDocumentDBClient{
-					Errors: map[string]error{
-						"DescribeDBClusters":  dummyError,
-						"DescribeDBInstances": dummyError,
-						"ListTagsForResource": dummyError,
 					},
 				},
 				s3: &mock.MockS3Client{

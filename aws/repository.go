@@ -10,6 +10,10 @@ import (
 	"github.com/cyralinc/dmap/scan"
 )
 
+const (
+	docDbEngine = "docdb"
+)
+
 func newRepositoryFromRDSCluster(
 	cluster rdsTypes.DBCluster,
 ) scan.Repository {
@@ -17,12 +21,15 @@ func newRepositoryFromRDSCluster(
 	for _, tag := range cluster.TagList {
 		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
-
+	repoType := scan.RepoTypeRDS
+	if cluster.Engine != nil && *cluster.Engine == docDbEngine {
+		repoType = scan.RepoTypeDocumentDB
+	}
 	return scan.Repository{
 		Id:         aws.ToString(cluster.DBClusterArn),
 		Name:       aws.ToString(cluster.DBClusterIdentifier),
 		CreatedAt:  aws.ToTime(cluster.ClusterCreateTime),
-		Type:       scan.RepoTypeRDS,
+		Type:       repoType,
 		Tags:       tags,
 		Properties: cluster,
 	}
@@ -35,12 +42,15 @@ func newRepositoryFromRDSInstance(
 	for _, tag := range instance.TagList {
 		tags = append(tags, formatTag(tag.Key, tag.Value))
 	}
-
+	repoType := scan.RepoTypeRDS
+	if instance.Engine != nil && *instance.Engine == docDbEngine {
+		repoType = scan.RepoTypeDocumentDB
+	}
 	return scan.Repository{
 		Id:         aws.ToString(instance.DBInstanceArn),
 		Name:       aws.ToString(instance.DBInstanceIdentifier),
 		CreatedAt:  aws.ToTime(instance.InstanceCreateTime),
-		Type:       scan.RepoTypeRDS,
+		Type:       repoType,
 		Tags:       tags,
 		Properties: instance,
 	}

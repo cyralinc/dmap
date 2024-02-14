@@ -64,17 +64,19 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	var wg sync.WaitGroup
 	wg.Add(len(s.scannerConfig.Regions))
 
-	scanFunctions := []scanFunction{
-		scanRDSClusterRepositories,
-		scanRDSInstanceRepositories,
-		scanRedshiftRepositories,
-		scanDynamoDBRepositories,
-		scanS3Buckets,
-	}
-
-	s3ScanDone := false
-
 	for i := range s.scannerConfig.Regions {
+		scanFunctions := []scanFunction{
+			scanRDSClusterRepositories,
+			scanRDSInstanceRepositories,
+			scanRedshiftRepositories,
+			scanDynamoDBRepositories,
+		}
+		if i == 0 {
+			// This ensures that we only run scanS3Buckets once. We need to do this
+			// because S3 APIs are not region-aware, which means that calling them
+			// for every region will result in duplicated buckets.
+			scanFunctions = append(scanFunctions, scanS3Buckets)
+		}
 		go func(region string, scanFunctions []scanFunction) {
 			defer wg.Done()
 			response := scanRegion(
@@ -93,15 +95,6 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 				return
 			}
 		}(s.scannerConfig.Regions[i], scanFunctions)
-
-		// We only want to run the S3 scanner once, so we pop it from the list of
-		// scan functions.
-		// NOTE: in order for this to work, the <scanS3Buckets> function must
-		// be the last entry in the slice!
-		if !s3ScanDone {
-			s3ScanDone = true
-			scanFunctions = scanFunctions[:len(scanFunctions)-1]
-		}
 	}
 
 	go func() {

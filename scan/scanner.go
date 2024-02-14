@@ -20,10 +20,11 @@ type RepoType string
 
 const (
 	// Repo types
-	RepoTypeRDS      RepoType = "TYPE_RDS"
-	RepoTypeRedshift RepoType = "TYPE_REDSHIFT"
-	RepoTypeDynamoDB RepoType = "TYPE_DYNAMODB"
-	RepoTypeS3       RepoType = "TYPE_S3"
+	RepoTypeRDS        RepoType = "TYPE_RDS"
+	RepoTypeRedshift   RepoType = "TYPE_REDSHIFT"
+	RepoTypeDynamoDB   RepoType = "TYPE_DYNAMODB"
+	RepoTypeS3         RepoType = "TYPE_S3"
+	RepoTypeDocumentDB RepoType = "TYPE_DOCUMENTDB"
 )
 
 // Repository represents a scanned data repository.

@@ -64,10 +64,26 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	var wg sync.WaitGroup
 	wg.Add(len(s.scannerConfig.Regions))
 
+	scanFunctions := []scanFunction{
+		scanRDSClusterRepositories,
+		scanRDSInstanceRepositories,
+		scanRedshiftRepositories,
+		scanDynamoDBRepositories,
+		scanS3Buckets,
+	}
+
+	s3ScanDone := false
+
 	for i := range s.scannerConfig.Regions {
-		go func(region string) {
+		go func(region string, scanFunctions []scanFunction) {
 			defer wg.Done()
-			response := scanRegion(ctx, s.awsConfig, region, s.awsClientConstructor)
+			response := scanRegion(
+				ctx,
+				s.awsConfig,
+				region,
+				s.awsClientConstructor,
+				scanFunctions,
+			)
 
 			select {
 			case responseChan <- response:
@@ -76,7 +92,16 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 			case <-ctx.Done():
 				return
 			}
-		}(s.scannerConfig.Regions[i])
+		}(s.scannerConfig.Regions[i], scanFunctions)
+
+		// We only want to run the S3 scanner once, so we pop it from the list of
+		// scan functions.
+		// NOTE: in order for this to work, the <scanS3Buckets> function must
+		// be the last entry in the slice!
+		if !s3ScanDone {
+			s3ScanDone = true
+			scanFunctions = scanFunctions[:len(scanFunctions)-1]
+		}
 	}
 
 	go func() {
@@ -115,20 +140,13 @@ func scanRegion(
 	awsConfig aws.Config,
 	region string,
 	newAWSClient awsClientConstructor,
+	scanFunctions []scanFunction,
 ) scanResponse {
 	repositories := []scan.Repository{}
 	var scanErrors []error
 
 	awsConfig.Region = region
 	awsClient := newAWSClient(awsConfig)
-
-	scanFunctions := []scanFunction{
-		scanRDSClusterRepositories,
-		scanRDSInstanceRepositories,
-		scanRedshiftRepositories,
-		scanDynamoDBRepositories,
-		scanS3Buckets,
-	}
 
 	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup

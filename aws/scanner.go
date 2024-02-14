@@ -65,9 +65,27 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 	wg.Add(len(s.scannerConfig.Regions))
 
 	for i := range s.scannerConfig.Regions {
-		go func(region string) {
+		scanFunctions := []scanFunction{
+			scanRDSClusterRepositories,
+			scanRDSInstanceRepositories,
+			scanRedshiftRepositories,
+			scanDynamoDBRepositories,
+		}
+		if i == 0 {
+			// This ensures that we only run scanS3Buckets once. We need to do this
+			// because S3 APIs are not region-aware, which means that calling them
+			// for every region will result in duplicated buckets.
+			scanFunctions = append(scanFunctions, scanS3Buckets)
+		}
+		go func(region string, scanFunctions []scanFunction) {
 			defer wg.Done()
-			response := scanRegion(ctx, s.awsConfig, region, s.awsClientConstructor)
+			response := scanRegion(
+				ctx,
+				s.awsConfig,
+				region,
+				s.awsClientConstructor,
+				scanFunctions,
+			)
 
 			select {
 			case responseChan <- response:
@@ -76,7 +94,7 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 			case <-ctx.Done():
 				return
 			}
-		}(s.scannerConfig.Regions[i])
+		}(s.scannerConfig.Regions[i], scanFunctions)
 	}
 
 	go func() {
@@ -115,20 +133,13 @@ func scanRegion(
 	awsConfig aws.Config,
 	region string,
 	newAWSClient awsClientConstructor,
+	scanFunctions []scanFunction,
 ) scanResponse {
 	repositories := []scan.Repository{}
 	var scanErrors []error
 
 	awsConfig.Region = region
 	awsClient := newAWSClient(awsConfig)
-
-	scanFunctions := []scanFunction{
-		scanRDSClusterRepositories,
-		scanRDSInstanceRepositories,
-		scanRedshiftRepositories,
-		scanDynamoDBRepositories,
-		scanS3Buckets,
-	}
 
 	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup

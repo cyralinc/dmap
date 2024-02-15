@@ -299,45 +299,6 @@ func (s *AWSScannerTestSuite) TestScan() {
 				},
 				Properties: *s.dummyDynamoDBTable[s.dummyDynamoDBTableNames[2]],
 			},
-			{
-				Id:        "arn:aws:s3:::bucket_1",
-				Name:      "bucket_1",
-				Type:      scan.RepoTypeS3,
-				CreatedAt: *s.dummyS3Buckets[0].CreationDate,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyS3Tags[0].Key,
-						*s.dummyS3Tags[0].Value,
-					),
-				},
-			},
-			{
-				Id:        "arn:aws:s3:::bucket_2",
-				Name:      "bucket_2",
-				Type:      scan.RepoTypeS3,
-				CreatedAt: *s.dummyS3Buckets[1].CreationDate,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyS3Tags[0].Key,
-						*s.dummyS3Tags[0].Value,
-					),
-				},
-			},
-			{
-				Id:        "arn:aws:s3:::bucket_3",
-				Name:      "bucket_3",
-				Type:      scan.RepoTypeS3,
-				CreatedAt: *s.dummyS3Buckets[2].CreationDate,
-				Tags: []string{
-					fmt.Sprintf(
-						"%s:%s",
-						*s.dummyS3Tags[0].Key,
-						*s.dummyS3Tags[0].Value,
-					),
-				},
-			},
 		},
 	}
 

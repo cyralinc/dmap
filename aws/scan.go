@@ -137,6 +137,7 @@ func scanDynamoDBRepositories(
 	}
 }
 
+//lint:ignore U1000 ignored unused for now - WIP
 func scanS3Buckets(
 	ctx context.Context,
 	awsClient *awsClient,

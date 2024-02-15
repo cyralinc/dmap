@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -57,9 +58,6 @@ func NewAWSScanner(
 // results, containing a list of data repositories that includes: RDS clusters
 // and instances, Redshift clusters and DynamoDB tables.
 func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
-	repositories := []scan.Repository{}
-	var scanErrors []error
-
 	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup
 	wg.Add(len(s.scannerConfig.Regions))
@@ -96,6 +94,8 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		close(responseChan)
 	}()
 
+	repositories := make(map[string]scan.Repository)
+	var scanErrors []error
 	for {
 		select {
 		case <-ctx.Done():
@@ -116,7 +116,7 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 				}, scanErr
 
 			}
-			repositories = append(repositories, response.repositories...)
+			maps.Copy(repositories, response.repositories)
 			scanErrors = append(scanErrors, response.scanErrors...)
 		}
 	}
@@ -129,9 +129,6 @@ func scanRegion(
 	newAWSClient awsClientConstructor,
 	scanFunctions []scanFunction,
 ) scanResponse {
-	repositories := []scan.Repository{}
-	var scanErrors []error
-
 	awsConfig.Region = region
 	awsClient := newAWSClient(awsConfig)
 
@@ -159,6 +156,8 @@ func scanRegion(
 		close(responseChan)
 	}()
 
+	repositories := make(map[string]scan.Repository)
+	var scanErrors []error
 	for {
 		select {
 		case <-ctx.Done():
@@ -176,8 +175,7 @@ func scanRegion(
 					scanErrors:   scanErrors,
 				}
 			}
-
-			repositories = append(repositories, response.repositories...)
+			maps.Copy(repositories, response.repositories)
 			scanErrors = append(scanErrors, response.scanErrors...)
 		}
 	}

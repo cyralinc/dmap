@@ -13,7 +13,7 @@ type scanFunction func(
 ) scanResponse
 
 type scanResponse struct {
-	repositories []scan.Repository
+	repositories map[string]scan.Repository
 	scanErrors   []error
 }
 
@@ -33,12 +33,10 @@ func scanRDSClusterRepositories(
 			),
 		)
 	}
-	repositories := make([]scan.Repository, 0, len(rdsClusters))
+	repositories := make(map[string]scan.Repository, len(rdsClusters))
 	for _, cluster := range rdsClusters {
-		repositories = append(
-			repositories,
-			newRepositoryFromRDSCluster(cluster),
-		)
+		repo := newRepositoryFromRDSCluster(cluster)
+		repositories[repo.Id] = repo
 	}
 	return scanResponse{
 		repositories: repositories,
@@ -62,15 +60,13 @@ func scanRDSInstanceRepositories(
 			),
 		)
 	}
-	repositories := make([]scan.Repository, 0, len(rdsInstances))
+	repositories := make(map[string]scan.Repository, len(rdsInstances))
 	for _, instance := range rdsInstances {
 		// Skip cluster instances, since they were already added when retrieving
 		// the RDS clusters.
 		if instance.DBClusterIdentifier == nil {
-			repositories = append(
-				repositories,
-				newRepositoryFromRDSInstance(instance),
-			)
+			repo := newRepositoryFromRDSInstance(instance)
+			repositories[repo.Id] = repo
 		}
 	}
 	return scanResponse{
@@ -95,12 +91,10 @@ func scanRedshiftRepositories(
 			),
 		)
 	}
-	repositories := make([]scan.Repository, 0, len(redshiftClusters))
+	repositories := make(map[string]scan.Repository, len(redshiftClusters))
 	for _, cluster := range redshiftClusters {
-		repositories = append(
-			repositories,
-			newRepositoryFromRedshiftCluster(cluster),
-		)
+		repo := newRepositoryFromRedshiftCluster(cluster)
+		repositories[repo.Id] = repo
 	}
 	return scanResponse{
 		repositories: repositories,
@@ -124,12 +118,10 @@ func scanDynamoDBRepositories(
 			),
 		)
 	}
-	repositories := make([]scan.Repository, 0, len(dynamodbTables))
+	repositories := make(map[string]scan.Repository, len(dynamodbTables))
 	for _, table := range dynamodbTables {
-		repositories = append(
-			repositories,
-			newRepositoryFromDynamoDBTable(table),
-		)
+		repo := newRepositoryFromDynamoDBTable(table)
+		repositories[repo.Id] = repo
 	}
 	return scanResponse{
 		repositories: repositories,
@@ -154,12 +146,10 @@ func scanS3Buckets(
 			),
 		)
 	}
-	repos := make([]scan.Repository, 0, len(buckets))
+	repos := make(map[string]scan.Repository, len(buckets))
 	for _, bucket := range buckets {
-		repos = append(
-			repos,
-			newRepositoryFromS3Bucket(bucket),
-		)
+		repo := newRepositoryFromS3Bucket(bucket)
+		repos[repo.Id] = repo
 	}
 	return scanResponse{
 		repositories: repos,

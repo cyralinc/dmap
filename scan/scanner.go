@@ -38,9 +38,10 @@ type Repository struct {
 }
 
 // ScanResults represents the results of a repository scan, including all the
-// data repositories that were scanned.
+// data repositories that were scanned. The map key is the repository ID and the
+// value is the repository itself.
 type ScanResults struct {
-	Repositories []Repository
+	Repositories map[string]Repository
 }
 
 // ScanError is an error type that represents a collection of errors that

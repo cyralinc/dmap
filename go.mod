@@ -6,10 +6,10 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.25.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.0
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.28.0
-	github.com/aws/aws-sdk-go-v2/service/rds v1.70.0
-	github.com/aws/aws-sdk-go-v2/service/redshift v1.41.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.49.0
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.29.0
+	github.com/aws/aws-sdk-go-v2/service/rds v1.71.0
+	github.com/aws/aws-sdk-go-v2/service/redshift v1.42.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.50.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.27.0
 	github.com/stretchr/testify v1.8.4
 )

@@ -5,8 +5,8 @@
 </div>
 
 Dmap is a free and open-source tool to assess your data security posture in AWS. 
-It allows you to quickly find information about your data repositories from different 
-AWS account environments, across multiple regions.
+It allows you to quickly find information about your data repositories from 
+different AWS account environments, across multiple regions.
 
 It currently supports different data repository types from across AWS services, 
 including:
@@ -20,9 +20,9 @@ including:
 
 ### Requirements
 
-The Dmap library only requires a set of read-only AWS service permissions, so that 
-it's able to find existing data repositories from these services. This includes 
-the following actions:
+The Dmap library requires a set of read-only AWS service permissions, so that 
+it's able to find existing data repositories from these services. IAM credentials 
+with permissions for the following actions are required: 
 
 - `rds:DescribeDBClusters`
 - `rds:DescribeDBInstances`
@@ -48,9 +48,9 @@ follow the steps below:
 
 1. Define the AWS credentials for the account to be scanned. This can be done 
 through one of the following options:
-    1. Using credentials defined through AWS environment variables.
-    2. Using the `default` profile from the AWS credentials file.
-    3. Assuming an AWS IAM Role. 
+    * Using credentials defined through AWS environment variables.
+    * Using the `default` profile from the AWS credentials file.
+    * Assuming an AWS IAM Role. 
     
     If you want to use an IAM Role, follow the instructions below on how to 
     configure the `ScannerConfig` to assume an IAM role. For more details, see the 
@@ -60,8 +60,10 @@ through one of the following options:
     2. (Optional) Define the `AssumeRoleConfig` parameters for the IAM Role to 
        be assumed. The AWS default external configurations will be used instead 
        if this is not defined.
-3. Instantiate a new `AWSScanner` using the `NewAWSScanner` with the `ScannerConfig` defined.
-4. Use the `AWSScanner` to call the `Scan` method for scanning all the existing data repositories for the configuration provided.
+3. Instantiate a new `AWSScanner` using the `NewAWSScanner` function with the 
+`ScannerConfig` defined.
+4. Use the `AWSScanner` to call the `Scan` method for scanning all the existing 
+data repositories for the configuration provided.
 
 Here's a code example of how to do that:
 ```Go
@@ -112,11 +114,14 @@ func main() {
 
 ## Resources
 
-Learn more about Cyral visiting [Cyral.com](https://cyral.com/) and also the links below:
+Learn more about Cyral by visiting [Cyral.com](https://cyral.com/) and also the 
+links below:
 
 - [Cyral Dmap](https://dmap.cyral.io/)
 - [Cyral Public Docs](https://cyral.com/docs/)
 
-## License
+## Contribution guidelines
 
-[Apache License 2.0](LICENSE)
+We use [GitHub issues](https://github.com/cyralinc/dmap/issues) for tracking 
+requests and bugs, please feel free to use that for reporting any requests or 
+issues.

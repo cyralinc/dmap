@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.43.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.1
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
 
 require (

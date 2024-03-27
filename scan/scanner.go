@@ -7,7 +7,7 @@ import (
 )
 
 // Scanner is an interface that should be implemented for a specific cloud
-// provider (e.g. AWS, GCP, etc). It defines the Scan method responsible for
+// provider (e.g. AWS, GCP, etc.). It defines the Scan method responsible for
 // scanning the existing data repositories of the corresponding cloud provider
 // environment.
 type Scanner interface {
@@ -19,7 +19,6 @@ type Scanner interface {
 type RepoType string
 
 const (
-	// Repo types
 	RepoTypeRDS        RepoType = "TYPE_RDS"
 	RepoTypeRedshift   RepoType = "TYPE_REDSHIFT"
 	RepoTypeDynamoDB   RepoType = "TYPE_DYNAMODB"

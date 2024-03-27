@@ -1,0 +1,77 @@
+# Contains all the predefined data labels by Cyral. To add a new predefined
+# label, define it in this file along with its classification rule Rego code in
+# a '<label>.rego' file.
+#
+# YAML structure:
+#
+# labels:               # The list of labels
+#   - name: foo         # The label name
+#     description: bar  # The label description
+#     tags:             # The label tags (list)
+#       - tag1
+#       - tag2
+labels:
+  - name: Address
+    description: Address
+    tags:
+      - PII
+
+  - name: Age
+    description: Age
+    tags:
+      - PII
+
+  - name: CCN
+    description: Credit card number
+    tags:
+      - PCI
+
+  - name: CVV
+    description: Credit card verification value (CVV)
+    tags:
+      - PCI
+
+  - name: DOB
+    description: Date of birth
+    tags:
+      - PII
+
+  - name: Email
+    description: Email address
+    tags:
+      - PII
+
+  - name: First Name
+    description: First name
+    tags:
+      - PII
+
+  - name: Full Name
+    description: Full name
+    tags:
+      - PII
+
+  - name: IP Address
+    description: IP address
+    tags:
+      - PII
+
+  - name: Last Name
+    description: Last name
+    tags:
+      - PII
+
+  - name: Passport
+    description: Passport number
+    tags:
+      - PII
+
+  - name: Phone Number
+    description: Phone number
+    tags:
+      - PII
+
+  - name: SSN
+    description: Social security number
+    tags:
+      - PII

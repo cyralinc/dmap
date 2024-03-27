@@ -23,20 +23,25 @@ import (
 	_ "github.com/cyralinc/dmap/discovery/repository/sqlserver"
 )
 
-// TODO: godoc -ccampo 2024-03-27
+// Scanner is a data discovery scanner that scans a data repository for
+// sensitive data. It also classifies the data and publishes the results to
+// the configured external sources.
 type Scanner struct {
-	config      *config.Config
-	repository  repository.Repository
-	classifiers []classification.Classifier
-	publisher   publisher.Publisher
+	config         *config.Config
+	repository     repository.Repository
+	embeddedLabels []classification.Label
+	customLabels   []classification.Label
+	classifier     *classification.LabelClassifier
+	publisher      publisher.Publisher
+	initialized    bool
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// NewScanner creates a new Scanner instance with the given configuration.
 func NewScanner(config *config.Config) Scanner {
 	return Scanner{config: config}
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// Init initializes the Scanner instance. It must be called before calling Run.
 func (s *Scanner) Init(ctx context.Context) error {
 	if s.config == nil {
 		return errors.New("unable to start crawler: config not found")
@@ -44,24 +49,26 @@ func (s *Scanner) Init(ctx context.Context) error {
 	// Note: order is important here because we don't have nil checks in these
 	// init methods.
 	s.initPublisher()
-
-	if err := s.initEmbeddedClassifiers(); err != nil {
+	if err := s.initEmbeddedLabels(); err != nil {
+		return err
+	}
+	if err := s.initLabelClassifier(); err != nil {
 		return err
 	}
 	if err := s.initRepository(ctx); err != nil {
 		return err
 	}
+	// Done!
+	s.initialized = true
 	return nil
 }
 
-func (s *Scanner) InitAndRun(ctx context.Context) error {
-	if err := s.Init(ctx); err != nil {
-		return err
-	}
-	return s.Run(ctx)
-}
-
+// Run runs the data repository scan. It samples the data repository, classifies
+// the data, and publishes the results to the configured external sources.
 func (s *Scanner) Run(ctx context.Context) error {
+	if !s.initialized {
+		return errors.New("scanner not initialized")
+	}
 	sampleParams := repository.SampleParameters{SampleSize: s.config.Repo.SampleSize}
 	var samples []repository.Sample
 	// The name of the database to connect to has been left unspecified by
@@ -106,7 +113,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 	}
 
 	// Classify sampled data
-	classifications, err := classification.ClassifySamples(ctx, samples, s.classifiers...)
+	classifications, err := classification.ClassifySamples(ctx, samples, s.classifier)
 	if err != nil {
 		return fmt.Errorf("error classifying samples: %w", err)
 	}
@@ -122,6 +129,15 @@ func (s *Scanner) Run(ctx context.Context) error {
 	return nil
 }
 
+// InitAndRun initializes the Scanner instance and runs the scan. It is a
+// convenience method that calls Init followed by Run.
+func (s *Scanner) InitAndRun(ctx context.Context) error {
+	if err := s.Init(ctx); err != nil {
+		return err
+	}
+	return s.Run(ctx)
+}
+
 func (s *Scanner) Cleanup() {
 	// Nil checks are prevent panics if deps are not yet initialized.
 	if s.repository != nil {
@@ -129,20 +145,26 @@ func (s *Scanner) Cleanup() {
 	}
 }
 
-func (s *Scanner) initEmbeddedClassifiers() error {
-	classifiers, err := classification.GetEmbeddedLabelClassifiers()
+func (s *Scanner) initEmbeddedLabels() error {
+	lbls, err := classification.GetEmbeddedLabels()
 	if err != nil {
-		return fmt.Errorf("error getting embedded label classifiers: %w", err)
+		return fmt.Errorf("error getting embedded labels: %w", err)
 	}
-	s.classifiers = make([]classification.Classifier, len(classifiers))
-	for i, classifier := range classifiers {
-		s.classifiers[i] = classifier
+	s.embeddedLabels = lbls.ToSlice()
+	return nil
+}
+
+func (s *Scanner) initLabelClassifier() error {
+	lbls := append(s.embeddedLabels, s.customLabels...)
+	c, err := classification.NewLabelClassifier(lbls...)
+	if err != nil {
+		return fmt.Errorf("error creating label classifier: %w", err)
 	}
+	s.classifier = c
 	return nil
 }
 
 func (s *Scanner) initPublisher() {
-	// TODO: eventually this should chose between publishing to the api and a local file -ccampo 2024-03-14
 	s.publisher = publisher.NewStdOutPublisher()
 }
 

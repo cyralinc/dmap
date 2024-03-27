@@ -2,314 +2,278 @@ package classification
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cyralinc/dmap/discovery/repository"
 )
 
-func TestClassifySamples_SingleSample(t *testing.T) {
-	repoName := "repoName"
-	catalogName := "catalogName"
-	schemaName := "schema"
-	tableName := "table"
+func TestMerge_WhenCalledOnNilReceiver_ShouldNotPanic(t *testing.T) {
+	var result Result
+	require.NotPanics(
+		t, func() {
+			result.Merge(Result{"age": {"AGE": {Name: "AGE"}}})
+		},
+	)
+}
+
+func TestMerge_WhenCalledWithNonExistingAttributes_ShouldAddThem(t *testing.T) {
+	result := Result{
+		"age": {"AGE": {Name: "AGE"}},
+	}
+	other := Result{
+		"social_sec_num": {"SSN": {Name: "SSN"}},
+	}
+	expected := Result{
+		"age":            {"AGE": {Name: "AGE"}},
+		"social_sec_num": {"SSN": {Name: "SSN"}},
+	}
+	result.Merge(other)
+	require.Equal(t, expected, result)
+}
+
+func TestMerge_WhenCalledWithExistingAttributes_ShouldMergeLabelSets(t *testing.T) {
+	result := Result{
+		"age": {"AGE": {Name: "AGE"}},
+	}
+	other := Result{
+		"age": {"CVV": {Name: "CVV"}},
+	}
+	expected := Result{
+		"age": {"AGE": {Name: "AGE"}, "CVV": {Name: "CVV"}},
+	}
+	result.Merge(other)
+	require.Equal(t, expected, result)
+}
+
+func TestMerge_WhenCalledWithExistingAttributes_ShouldOverwrite(t *testing.T) {
+	result := Result{
+		"age": {"AGE": {Name: "AGE", Description: "Foo"}},
+	}
+	other := Result{
+		"age": {"AGE": {Name: "AGE", Description: "Bar"}},
+	}
+	expected := Result{
+		"age": {"AGE": {Name: "AGE", Description: "Bar"}},
+	}
+	result.Merge(other)
+	require.Equal(t, expected, result)
+}
+
+func TestClassifySamples_SingleTable(t *testing.T) {
+	ctx := context.Background()
+	meta := repository.SampleMetadata{
+		Repo:     "repo",
+		Database: "db",
+		Schema:   "schema",
+		Table:    "table",
+	}
 
 	sample := repository.Sample{
-		Metadata: repository.SampleMetadata{
-			Repo:     repoName,
-			Database: catalogName,
-			Schema:   schemaName,
-			Table:    tableName,
-		},
+		Metadata: meta,
 		Results: []repository.SampleResult{
 			{
 				"age":             "52",
-				"social_sec_num":  "512-23-4256",
-				"credit_card_num": "4111111111111111",
-			},
-			{
-				"age":             "4111111111111111",
 				"social_sec_num":  "512-23-4258",
 				"credit_card_num": "4111111111111111",
 			},
+			{
+				"age":             "101",
+				"social_sec_num":  "foobarbaz",
+				"credit_card_num": "4111111111111111",
+			},
 		},
 	}
 
-	classifiers := []Classifier{
-		newTestLabelClassifier(t, "AGE"),
-		newTestLabelClassifier(t, "CCN"),
-	}
-
-	actual, err := ClassifySamples(
-		context.Background(),
-		[]repository.Sample{sample},
-		classifiers...,
+	classifier := NewMockClassifier(t)
+	// Need to explicitly convert it to a map because Mockery isn't smart enough
+	// to infer the type.
+	classifier.EXPECT().Classify(ctx, map[string]any(sample.Results[0])).Return(
+		Result{
+			"age": {
+				"AGE": {Name: "AGE"},
+			},
+			"social_sec_num": {
+				"SSN": {Name: "SSN"},
+			},
+			"credit_card_num": {
+				"CCN": {Name: "CCN"},
+			},
+		},
+		nil,
 	)
+	classifier.EXPECT().Classify(ctx, map[string]any(sample.Results[1])).Return(
+		Result{
+			"age": {
+				"AGE": {Name: "AGE"},
+				"CVV": {Name: "CVV"},
+			},
+			"credit_card_num": {
+				"CCN": {Name: "CCN"},
+			},
+		},
+		nil,
+	)
+
+	expected := []ClassifiedTable{
+		{
+			Repo:     meta.Repo,
+			Database: meta.Database,
+			Schema:   meta.Schema,
+			Table:    meta.Table,
+			Classifications: Result{
+				"age": {
+					"AGE": {Name: "AGE"},
+					"CVV": {Name: "CVV"},
+				},
+				"social_sec_num": {
+					"SSN": {Name: "SSN"},
+				},
+				"credit_card_num": {
+					"CCN": {Name: "CCN"},
+				},
+			},
+		},
+	}
+	actual, err := ClassifySamples(ctx, []repository.Sample{sample}, classifier)
 	require.NoError(t, err)
-
-	table := &ClassifiedTable{
-		Repo:    repoName,
-		Catalog: catalogName,
-		Schema:  schemaName,
-		Table:   tableName,
-	}
-
-	expected := []Result{
-		{
-			Table:           table,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "AGE"}},
-		},
-		{
-			Table:           table,
-			AttributeName:   "credit_card_num",
-			Classifications: []*Label{{Name: "CCN"}},
-		},
-		{
-			Table:           table,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "CCN"}},
-		},
-	}
-
 	require.Len(t, actual, len(expected))
-
-	for i, got := range actual {
-		want := expected[i]
-		require.Equal(t, want.Table, got.Table)
-		require.Equal(t, want.AttributeName, got.AttributeName)
-		require.Len(t, got.Classifications, len(want.Classifications))
-		for j, cl := range got.Classifications {
-			wantCl := want.Classifications[j]
-			require.Equal(t, wantCl.Name, cl.Name)
-		}
+	for i := range actual {
+		requireClassifiedTableEqual(t, expected[i], actual[i])
 	}
 }
 
-func TestClassifySamples_MultipleSamples(t *testing.T) {
-	repoName := "repoName"
-	catalogName := "catalogName"
-	schemaName := "schema"
-	tableName := "table"
-
-	metadata1 := repository.SampleMetadata{
-		Repo:     repoName,
-		Database: catalogName,
-		Schema:   schemaName,
-		Table:    tableName,
+func TestClassifySamples_MultipleTables(t *testing.T) {
+	ctx := context.Background()
+	meta1 := repository.SampleMetadata{
+		Repo:     "repo1",
+		Database: "db1",
+		Schema:   "schema1",
+		Table:    "table1",
 	}
-
-	metadata2 := repository.SampleMetadata{
-		Repo:     repoName,
-		Database: catalogName,
-		Schema:   schemaName + "2",
-		Table:    tableName + "2",
+	meta2 := repository.SampleMetadata{
+		Repo:     "repo2",
+		Database: "db2",
+		Schema:   "schema2",
+		Table:    "table2",
 	}
 
 	samples := []repository.Sample{
 		{
-			Metadata: metadata1,
+			Metadata: meta1,
 			Results: []repository.SampleResult{
 				{
 					"age":             "52",
-					"social_sec_num":  "512-23-4256",
+					"social_sec_num":  "512-23-4258",
+					"credit_card_num": "4111111111111111",
+				},
+				{
+					"age":             "101",
+					"social_sec_num":  "foobarbaz",
 					"credit_card_num": "4111111111111111",
 				},
 			},
 		},
 		{
-			Metadata: metadata1,
+			Metadata: meta2,
 			Results: []repository.SampleResult{
 				{
-					"age":             "52",
-					"social_sec_num":  "512-23-4256",
-					"credit_card_num": "4111111111111112",
-				},
-			},
-		},
-		{
-			Metadata: metadata2,
-			Results: []repository.SampleResult{
-				{
-					"age":             "52",
-					"name":            "Joe Smith",
-					"social_sec_num":  "512-23-4256",
-					"credit_card_num": "4111111111111112",
-				},
-				{
-					"age":             "4111111111111113",
-					"name":            "Joe Smith",
-					"social_sec_num":  "512-23-4256",
-					"credit_card_num": "4111111111111112",
+					"fullname": "John Doe",
+					"dob":      "2000-01-01",
+					"random":   "foobarbaz",
 				},
 			},
 		},
 	}
 
-	classifiers := []Classifier{
-		newTestLabelClassifier(t, "AGE"),
-		newTestLabelClassifier(t, "CCN"),
-	}
-
-	actual, err := ClassifySamples(context.Background(), samples, classifiers...)
-	require.NoError(t, err)
-
-	table1 := &ClassifiedTable{
-		Repo:    metadata1.Repo,
-		Catalog: metadata1.Database,
-		Schema:  metadata1.Schema,
-		Table:   metadata1.Table,
-	}
-
-	table2 := &ClassifiedTable{
-		Repo:    metadata2.Repo,
-		Catalog: metadata2.Database,
-		Schema:  metadata2.Schema,
-		Table:   metadata2.Table,
-	}
-
-	expected := []Result{
-		{
-			Table:           table1,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "AGE"}},
-		},
-		{
-			Table:           table2,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "AGE"}},
-		},
-		{
-			Table:           table1,
-			AttributeName:   "credit_card_num",
-			Classifications: []*Label{{Name: "CCN"}},
-		},
-		{
-			Table:           table2,
-			AttributeName:   "credit_card_num",
-			Classifications: []*Label{{Name: "CCN"}},
-		},
-		{
-			Table:           table2,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "CCN"}},
-		},
-	}
-	require.Len(t, actual, len(expected))
-
-	for i, got := range actual {
-		want := expected[i]
-		require.Equal(t, want.Table, got.Table)
-		require.Equal(t, want.AttributeName, got.AttributeName)
-		require.Len(t, got.Classifications, len(want.Classifications))
-		for j, cl := range got.Classifications {
-			wantCl := want.Classifications[j]
-			require.Equal(t, wantCl.Name, cl.Name)
-		}
-	}
-}
-
-type classifyFunc func(table *ClassifiedTable, attrs map[string]any) ([]Result, error)
-
-type fakeClassifier struct {
-	classify classifyFunc
-}
-
-var _ Classifier = (*fakeClassifier)(nil)
-
-func (f fakeClassifier) Classify(
-	_ context.Context,
-	table *ClassifiedTable,
-	attrs map[string]any,
-) ([]Result, error) {
-	return f.classify(table, attrs)
-}
-
-func TestClassifySamples_FakeClassifier_SingleSample(t *testing.T) {
-	repoName := "repoName"
-	catalogName := "catalogName"
-	schemaName := "schema"
-	tableName := "table"
-
-	sample := repository.Sample{
-		Metadata: repository.SampleMetadata{
-			Repo:     repoName,
-			Database: catalogName,
-			Schema:   schemaName,
-			Table:    tableName,
-		},
-		Results: []repository.SampleResult{
-			{
-				"age":             "52",
-				"social_sec_num":  "512-23-4256",
-				"credit_card_num": "4111111111111111",
+	classifier := NewMockClassifier(t)
+	// Need to explicitly convert it to a map because Mockery isn't smart enough
+	// to infer the type.
+	classifier.EXPECT().Classify(ctx, map[string]any(samples[0].Results[0])).Return(
+		Result{
+			"age": {
+				"AGE": {Name: "AGE"},
 			},
-			{
-				"age":             "53",
-				"social_sec_num":  "512-23-4258",
-				"credit_card_num": "4111111111111111",
+			"social_sec_num": {
+				"SSN": {Name: "SSN"},
+			},
+			"credit_card_num": {
+				"CCN": {Name: "CCN"},
 			},
 		},
-	}
-
-	table := ClassifiedTable{
-		Repo:    repoName,
-		Catalog: catalogName,
-		Schema:  schemaName,
-		Table:   tableName,
-	}
-
-	expected := []Result{
-		{
-			Table:           &table,
-			AttributeName:   "age",
-			Classifications: []*Label{{Name: "PII"}},
-		},
-		{
-			Table:           &table,
-			AttributeName:   "social_sec_num",
-			Classifications: []*Label{{Name: "PII"}, {Name: "PRIVATE"}},
-		},
-		{
-			Table:           &table,
-			AttributeName:   "credit_card_num",
-			Classifications: []*Label{{Name: "PII"}, {Name: "CCN"}, {Name: "PCI"}},
-		},
-	}
-
-	classifier := fakeClassifier{
-		classify: func(
-			table *ClassifiedTable,
-			attrs map[string]any,
-		) ([]Result, error) {
-			return expected, nil
-		},
-	}
-
-	actual, err := ClassifySamples(
-		context.Background(),
-		[]repository.Sample{sample},
-		classifier,
+		nil,
 	)
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, expected, actual)
+	classifier.EXPECT().Classify(ctx, map[string]any(samples[0].Results[1])).Return(
+		Result{
+			"age": {
+				"AGE": {Name: "AGE"},
+				"CVV": {Name: "CVV"},
+			},
+			"credit_card_num": {
+				"CCN": {Name: "CCN"},
+			},
+		},
+		nil,
+	)
+	classifier.EXPECT().Classify(ctx, map[string]any(samples[1].Results[0])).Return(
+		Result{
+			"fullname": {
+				"FULL_NAME": {Name: "FULL_NAME"},
+			},
+			"dob": {
+				"DOB": {Name: "DOB"},
+			},
+		},
+		nil,
+	)
+
+	expected := []ClassifiedTable{
+		{
+			Repo:     meta1.Repo,
+			Database: meta1.Database,
+			Schema:   meta1.Schema,
+			Table:    meta1.Table,
+			Classifications: Result{
+				"age": {
+					"AGE": {Name: "AGE"},
+					"CVV": {Name: "CVV"},
+				},
+				"social_sec_num": {
+					"SSN": {Name: "SSN"},
+				},
+				"credit_card_num": {
+					"CCN": {Name: "CCN"},
+				},
+			},
+		},
+		{
+			Repo:     meta2.Repo,
+			Database: meta2.Database,
+			Schema:   meta2.Schema,
+			Table:    meta2.Table,
+			Classifications: Result{
+				"fullname": {
+					"FULL_NAME": {Name: "FULL_NAME"},
+				},
+				"dob": {
+					"DOB": {Name: "DOB"},
+				},
+			},
+		},
+	}
+	actual, err := ClassifySamples(ctx, samples, classifier)
+	require.NoError(t, err)
+	require.Len(t, actual, len(expected))
+	for i := range actual {
+		requireClassifiedTableEqual(t, expected[i], actual[i])
+	}
 }
 
-func newTestLabelClassifier(t *testing.T, lblName string) Classifier {
-	fname := fmt.Sprintf("./rego/%s.rego", strings.ToLower(lblName))
-	fin, err := os.ReadFile(fname)
-	require.NoError(t, err)
-	classifierCode := string(fin)
-	lbl := Label{
-		Name:               lblName,
-		ClassificationRule: classifierCode,
-	}
-	classifier, err := NewLabelClassifier(&lbl)
-	require.NoError(t, err)
-	return classifier
+func requireClassifiedTableEqual(t *testing.T, expected, actual ClassifiedTable) {
+	require.Equal(t, expected.Repo, actual.Repo)
+	require.Equal(t, expected.Database, actual.Database)
+	require.Equal(t, expected.Schema, actual.Schema)
+	require.Equal(t, expected.Table, actual.Table)
+	requireResultEqual(t, expected.Classifications, actual.Classifications)
 }

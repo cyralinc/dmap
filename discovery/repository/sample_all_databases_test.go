@@ -13,8 +13,8 @@ import (
 
 const mockRepoType = "mockRepo"
 
-func setup() *MockRepository {
-	repo := new(MockRepository)
+func setup(t *testing.T) *MockRepository {
+	repo := NewMockRepository(t)
 	Register(
 		mockRepoType,
 		func(ctx context.Context, cfg config.RepoConfig) (Repository, error) {
@@ -29,7 +29,7 @@ func cleanup() {
 }
 
 func TestSampleAllDatabases_Error(t *testing.T) {
-	repo := setup()
+	repo := setup(t)
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()
@@ -43,7 +43,7 @@ func TestSampleAllDatabases_Error(t *testing.T) {
 }
 
 func TestSampleAllDatabases_Successful_TwoDatabases(t *testing.T) {
-	repo := setup()
+	repo := setup(t)
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()
@@ -103,7 +103,7 @@ func TestSampleAllDatabases_Successful_TwoDatabases(t *testing.T) {
 }
 
 func TestSampleAllDatabases_IntrospectError(t *testing.T) {
-	repo := setup()
+	repo := setup(t)
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()
@@ -121,7 +121,7 @@ func TestSampleAllDatabases_IntrospectError(t *testing.T) {
 }
 
 func TestSampleAllDatabases_SampleError(t *testing.T) {
-	repo := setup()
+	repo := setup(t)
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()
@@ -166,7 +166,7 @@ func TestSampleAllDatabases_SampleError(t *testing.T) {
 }
 
 func TestSampleAllDatabases_TwoDatabases_OneSampleError(t *testing.T) {
-	repo := setup()
+	repo := setup(t)
 	t.Cleanup(cleanup)
 
 	ctx := context.Background()

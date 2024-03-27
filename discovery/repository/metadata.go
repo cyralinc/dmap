@@ -16,20 +16,23 @@ type Metadata struct {
 	Schemas  map[string]*SchemaMetadata
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// SchemaMetadata represents the structure of a database schema. It contains a
+// map of tables that belong to the schema. The key is the table name and the
+// value is the table metadata for that table.
 type SchemaMetadata struct {
 	Name   string
 	Tables map[string]*TableMetadata
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// TableMetadata represents the structure of a database table. It contains a
+// slice of attributes (i.e. columns) that belong to the table.
 type TableMetadata struct {
 	Schema     string
 	Name       string
 	Attributes []*AttributeMetadata
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// AttributeNames returns a slice of attribute names for the table.
 func (t *TableMetadata) AttributeNames() []string {
 	attrNames := make([]string, 0, len(t.Attributes))
 	for _, attr := range t.Attributes {
@@ -38,14 +41,16 @@ func (t *TableMetadata) AttributeNames() []string {
 	return attrNames
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// QuotedAttributeNamesString returns a string of comma-separated attribute
+// names for the table, with each name quoted using the given quote character.
 func (t *TableMetadata) QuotedAttributeNamesString(quoteChar string) string {
 	sep := quoteChar + "," + quoteChar
 	commaSeparatedNames := strings.Join(t.AttributeNames(), sep)
 	return quoteChar + commaSeparatedNames + quoteChar
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// AttributeMetadata represents the structure of a database attribute (i.e.
+// column). It contains the schema, table, name, and data type of the attribute.
 type AttributeMetadata struct {
 	Schema   string `field:"table_schema"`
 	Table    string `field:"table_name"`
@@ -53,7 +58,8 @@ type AttributeMetadata struct {
 	DataType string `field:"data_type"`
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// NewMetadata creates a new Metadata object with the given repository type,
+// repository name, and database name, with an empty map of schemas.
 func NewMetadata(repoType, repoName, database string) *Metadata {
 	return &Metadata{
 		Name:     repoName,
@@ -63,7 +69,8 @@ func NewMetadata(repoType, repoName, database string) *Metadata {
 	}
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// NewSchemaMetadata creates a new SchemaMetadata object with the given schema
+// name and an empty map of tables.
 func NewSchemaMetadata(schemaName string) *SchemaMetadata {
 	return &SchemaMetadata{
 		Name:   schemaName,
@@ -71,7 +78,8 @@ func NewSchemaMetadata(schemaName string) *SchemaMetadata {
 	}
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// NewTableMetadata creates a new TableMetadata object with the given schema and
+// table name, and an empty slice of attributes.
 func NewTableMetadata(schemaName, tableName string) *TableMetadata {
 	return &TableMetadata{
 		Schema:     schemaName,

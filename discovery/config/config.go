@@ -9,13 +9,20 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// TODO: godoc -ccampo 2024-03-27
+// Config is the configuration for the application.
 type Config struct {
-	Repo RepoConfig `embed:""`
 	Dmap DmapConfig `embed:""`
+	Repo RepoConfig `embed:""`
 }
 
-// TODO: godoc -ccampo 2024-03-27
+// DmapConfig is the necessary configuration to connect to the Dmap API.
+type DmapConfig struct {
+	ApiBaseUrl   string `help:"Base URL of the Dmap API." default:"https://api.dmap.cyral.io"`
+	ClientID     string `help:"API client ID to access the Dmap API."`
+	ClientSecret string `help:"API client secret to access the Dmap API."` //#nosec G101 -- false positive
+}
+
+// RepoConfig is the necessary configuration to connect to a data repository.
 type RepoConfig struct {
 	Type         string         `help:"Type of repository to connect to (postgres|mysql|oracle|sqlserver|snowflake|redshift|denodo)." enum:"postgres,mysql,oracle,sqlserver,snowflake,redshift,denodo" required:""`
 	Host         string         `help:"Hostname of the repository." required:""`
@@ -33,7 +40,8 @@ type RepoConfig struct {
 // GlobFlag is a kong.MapperValue implementation that represents a glob pattern.
 type GlobFlag []glob.Glob
 
-// TODO: godoc -ccampo 2024-03-27
+// Decode parses the glob patterns and compiles them into glob.Glob objects. It
+// is an implementation of kong.MapperValue's Decode method.
 func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 	var patterns string
 	if err := ctx.Scan.PopValueInto("string", &patterns); err != nil {
@@ -49,11 +57,4 @@ func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 	}
 	ctx.Value.Target.Set(reflect.ValueOf(GlobFlag(parsedPatterns)))
 	return nil
-}
-
-// TODO: godoc -ccampo 2024-03-27
-type DmapConfig struct {
-	ApiBaseUrl   string `help:"Base URL of the Dmap API." default:"https://api.dmap.cyral.io"`
-	ClientID     string `help:"API client ID to access the Dmap API."`
-	ClientSecret string `help:"API client secret to access the Dmap API."` //#nosec G101 -- false positive
 }

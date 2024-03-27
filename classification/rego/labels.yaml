@@ -5,73 +5,73 @@
 # YAML structure:
 #
 # labels:               # The list of labels
-#   - name: foo         # The label name
+#   FOO:                # The label name
 #     description: bar  # The label description
 #     tags:             # The label tags (list)
 #       - tag1
 #       - tag2
 labels:
-  - name: ADDRESS
+  ADDRESS:
     description: Address
     tags:
       - PII
 
-  - name: AGE
+  AGE:
     description: Age
     tags:
       - PII
 
-  - name: CCN
+  CCN:
     description: Credit card number
     tags:
       - PCI
 
-  - name: CVV
+  CVV:
     description: Credit card verification value (CVV)
     tags:
       - PCI
 
-  - name: DOB
+  DOB:
     description: Date of birth
     tags:
       - PII
 
-  - name: EMAIL
+  EMAIL:
     description: Email address
     tags:
       - PII
 
-  - name: FIRST_NAME
+  FIRST_NAME:
     description: First name
     tags:
       - PII
 
-  - name: FULL_NAME
+  FULL_NAME:
     description: Full name
     tags:
       - PII
 
-  - name: IP_ADDRESS
+  IP_ADDRESS:
     description: IP address
     tags:
       - PII
 
-  - name: LAST_NAME
+  LAST_NAME:
     description: Last name
     tags:
       - PII
 
-  - name: PASSPORT
+  PASSPORT:
     description: Passport number
     tags:
       - PII
 
-  - name: PHONE
+  PHONE:
     description: Phone number
     tags:
       - PII
 
-  - name: SSN
+  SSN:
     description: Social security number
     tags:
       - PII

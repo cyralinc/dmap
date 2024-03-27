@@ -12,7 +12,7 @@ type SampleParameters struct {
 
 // Sample represents a sample of a database table. The Metadata field contains
 // metadata about the sample itself. The actual results of the sample, which
-// are  represented by a set of database rows, are contained in the Results
+// are represented by a set of database rows, are contained in the Results
 // field.
 type Sample struct {
 	Metadata SampleMetadata

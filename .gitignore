@@ -253,3 +253,6 @@ __debug_bin
 
 # Backup files
 *~
+
+# Other
+/.run/

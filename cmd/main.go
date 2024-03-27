@@ -8,7 +8,6 @@ import (
 )
 
 type Globals struct {
-	// TODO: add config file as global -ccampo 2024-03-22
 	LogLevel  logLevelFlag     `help:"Set the logging level (trace|debug|info|warn|error|fatal)" enum:"trace,debug,info,warn,error,fatal" default:"info"`
 	LogFormat logFormatFlag    `help:"Set the logging format (text|json)" enum:"text,json" default:"text"`
 	Version   kong.VersionFlag `name:"version" help:"Print version information and quit"`
@@ -51,6 +50,10 @@ type CLI struct {
 	RepoScan RepoScanCmd `cmd:"" help:"Perform data discovery and classification on a data repository."`
 }
 
+// version is the application version. It is intended to be set at compile time
+// via the linker (e.g. -ldflags="-X main.version=...").
+var version string
+
 func main() {
 	cli := CLI{
 		Globals: Globals{},
@@ -66,8 +69,7 @@ func main() {
 			},
 		),
 		kong.Vars{
-			// TODO: get version from file -ccampo 2024-03-27
-			"version": "0.0.1",
+			"version": version,
 		},
 	)
 	err := ctx.Run(&cli.Globals)

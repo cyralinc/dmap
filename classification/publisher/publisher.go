@@ -11,11 +11,8 @@ import (
 // Publisher publishes classification and discovery results to some destination,
 // which is left up to the implementer.
 type Publisher interface {
-	// PublishClassifications publishes a list of classification.Result to
-	// some destination. Any error(s) during publication should be returned.
-	PublishClassifications(
-		ctx context.Context,
-		repoId string,
-		results []classification.Result,
-	) error
+	// PublishClassifications publishes a slice of
+	// classification.ClassifiedTable to some destination. Any error(s) during
+	// publication should be returned.
+	PublishClassifications(ctx context.Context, repoId string, results []classification.ClassifiedTable) error
 }

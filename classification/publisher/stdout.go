@@ -20,19 +20,17 @@ func NewStdOutPublisher() *StdOutPublisher {
 
 func (c *StdOutPublisher) PublishClassifications(
 	_ context.Context,
-	repoId string,
-	results []classification.Result,
+	_ string,
+	tables []classification.ClassifiedTable,
 ) error {
-	classifications := struct {
-		Repo            string                  `json:"repo"`
-		Classifications []classification.Result `json:"classifications"`
+	results := struct {
+		Results []classification.ClassifiedTable `json:"results"`
 	}{
-		Repo:            repoId,
-		Classifications: results,
+		Results: tables,
 	}
-	b, err := json.MarshalIndent(classifications, "", "    ")
+	b, err := json.MarshalIndent(results, "", "    ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal classifications: %w", err)
+		return fmt.Errorf("failed to marshal results: %w", err)
 	}
 	fmt.Println(string(b))
 	return nil

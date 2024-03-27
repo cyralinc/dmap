@@ -25,10 +25,12 @@ import (
 
 // TODO: godoc -ccampo 2024-03-27
 type Scanner struct {
-	config      *config.Config
-	repository  repository.Repository
-	classifiers []classification.Classifier
-	publisher   publisher.Publisher
+	config         *config.Config
+	repository     repository.Repository
+	embeddedLabels []classification.LabelAndRule
+	customLabels   []classification.LabelAndRule
+	classifier     *classification.LabelClassifier
+	publisher      publisher.Publisher
 }
 
 // TODO: godoc -ccampo 2024-03-27
@@ -44,8 +46,10 @@ func (s *Scanner) Init(ctx context.Context) error {
 	// Note: order is important here because we don't have nil checks in these
 	// init methods.
 	s.initPublisher()
-
-	if err := s.initEmbeddedClassifiers(); err != nil {
+	if err := s.initEmbeddedLabels(); err != nil {
+		return err
+	}
+	if err := s.initLabelClassifier(); err != nil {
 		return err
 	}
 	if err := s.initRepository(ctx); err != nil {
@@ -129,15 +133,22 @@ func (s *Scanner) Cleanup() {
 	}
 }
 
-func (s *Scanner) initEmbeddedClassifiers() error {
-	classifiers, err := classification.GetEmbeddedLabelClassifiers()
+func (s *Scanner) initEmbeddedLabels() error {
+	lbls, err := classification.GetEmbeddedLabels()
 	if err != nil {
-		return fmt.Errorf("error getting embedded label classifiers: %w", err)
+		return fmt.Errorf("error getting embedded labels: %w", err)
 	}
-	s.classifiers = make([]classification.Classifier, len(classifiers))
-	for i, classifier := range classifiers {
-		s.classifiers[i] = classifier
+	s.embeddedLabels = lbls
+	return nil
+}
+
+func (s *Scanner) initLabelClassifier() error {
+	lbls := append(s.embeddedLabels, s.customLabels...)
+	c, err := classification.NewLabelClassifier(lbls...)
+	if err != nil {
+		return fmt.Errorf("error creating label classifier: %w", err)
 	}
+	s.classifier = c
 	return nil
 }
 

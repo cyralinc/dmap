@@ -15,10 +15,15 @@ import (
 
 // Label represents a data classification label.
 type Label struct {
-	Name               string   `json:"name"`
-	Description        string   `json:"description"`
-	Tags               []string `json:"tags"`
-	ClassificationRule string   `json:"-"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Tags        []string `json:"tags"`
+}
+
+// TODO: godoc -ccampo 2024-03-27
+type LabelAndRule struct {
+	Label
+	ClassificationRule rego.PreparedEvalQuery
 }
 
 //go:embed rego/*.rego
@@ -28,109 +33,114 @@ var regoFs embed.FS
 var labelsYaml string
 
 // TODO: godoc -ccampo 2024-03-27
-func GetEmbeddedLabelClassifiers() ([]*LabelClassifier, error) {
+func GetEmbeddedLabels() ([]LabelAndRule, error) {
 	lbls := struct {
-		Labels []*Label `yaml:"labels"`
+		Labels []Label `yaml:"labels"`
 	}{}
 	if err := yaml.Unmarshal([]byte(labelsYaml), &lbls); err != nil {
 		return nil, fmt.Errorf("error unmarshalling labels.yaml: %w", err)
 	}
-	classifiers := make([]*LabelClassifier, len(lbls.Labels))
+	lblAndRules := make([]LabelAndRule, len(lbls.Labels))
 	for i, lbl := range lbls.Labels {
 		fname := "rego/" + strings.ReplaceAll(strings.ToLower(lbl.Name), " ", "_") + ".rego"
 		b, err := regoFs.ReadFile(fname)
 		if err != nil {
 			return nil, fmt.Errorf("error reading rego file %s: %w", fname, err)
 		}
-		lbl.ClassificationRule = string(b)
-		classifier, err := NewLabelClassifier(lbl)
+		rule, err := prepareClassificationRule(string(b))
 		if err != nil {
-			return nil, fmt.Errorf("unable to initialize classifier for label %s: %w", lbl.Name, err)
+			return nil, fmt.Errorf("error preparing classification rule for label %s: %w", lbl.Name, err)
 		}
-		classifiers[i] = classifier
+		lblAndRules[i] = LabelAndRule{Label: lbl, ClassificationRule: rule}
 	}
-	return classifiers, nil
+	return lblAndRules, nil
 }
 
 // TODO: godoc -ccampo 2024-03-26
 type LabelClassifier struct {
-	lbl           *Label
-	preparedQuery rego.PreparedEvalQuery
+	lbls []LabelAndRule
 }
 
 // *LabelClassifier implements Classifier
 var _ Classifier = (*LabelClassifier)(nil)
 
 // TODO: godoc -ccampo 2024-03-26
-func NewLabelClassifier(lbl *Label) (*LabelClassifier, error) {
-	if lbl == nil {
-		return nil, fmt.Errorf("label cannot be nil")
+func NewLabelClassifier(lbls ...LabelAndRule) (*LabelClassifier, error) {
+	if len(lbls) == 0 {
+		return nil, fmt.Errorf("labels cannot be empty")
 	}
-	q, err := prepareClassifierCode(lbl.ClassificationRule)
-	if err != nil {
-		return nil, err
-	}
-	return &LabelClassifier{lbl: lbl, preparedQuery: q}, nil
+	return &LabelClassifier{lbls: lbls}, nil
 }
 
 // TODO: godoc -ccampo 2024-03-26
-func (c *LabelClassifier) Classify(
-	_ context.Context,
-	table *ClassifiedTable,
-	attrs map[string]any,
-) ([]Result, error) {
+func (c *LabelClassifier) Classify(ctx context.Context, attrs map[string]any) (map[string][]Label, error) {
 	if c == nil || len(attrs) == 0 {
 		return nil, fmt.Errorf("invalid arguments; classifier or attributes are nil/empty")
 	}
-
-	res, err := c.preparedQuery.Eval(context.Background(), rego.EvalInput(attrs))
-	if err != nil {
-		return nil, fmt.Errorf(
-			"[classifier %s] error evaluating query for inputs %s; %w", c.lbl.Name, attrs, err,
-		)
-	}
-
-	if len(res) != 1 || len(res[0].Expressions) != 1 {
-		return nil, fmt.Errorf(
-			"[classifier %s] received malformed result in classification eval - expected 1 result with 1 expression result, but found: '%s'",
-			c.lbl.Name,
-			res,
-		)
-	}
-	log.Debugf("[classifier %s] results: '%s'", c.lbl.Name, res)
-
-	exprValue := res[0].Expressions[0]
-	if exprValue == nil {
-		return nil, fmt.Errorf("[classifier %s] expression value is nil", c.lbl.Name)
-	}
-
-	output, ok := res[0].Expressions[0].Value.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf(
-			"[classifier %s] expected output type to be map[string]any, but found: %T",
-			c.lbl.Name,
-			res[0].Expressions[0].Value,
-		)
-	}
-
-	// TODO: comment explaining this -ccampo 2024-03-27
-	classifications := make([]Result, 0, len(output))
-	i := 0
-	for attrName, v := range output {
-		if v, ok := v.(bool); v && ok {
-			classifications[i] = Result{
-				Table:           table,
-				AttributeName:   attrName,
-				Classifications: []*Label{c.lbl},
+	classifications := make(map[string][]Label, len(c.lbls))
+	for _, lbl := range c.lbls {
+		output, err := c.evalQuery(ctx, lbl.ClassificationRule, attrs)
+		if err != nil {
+			return nil, fmt.Errorf("error evaluating query for label %s: %w", lbl.Name, err)
+		}
+		log.Debugf("classification results for label %s: %v", lbl.Name, output)
+		for attrName, v := range output {
+			if v {
+				classifications[attrName] = append(classifications[attrName], lbl.Label)
 			}
-			i++
 		}
 	}
-
 	return classifications, nil
 }
 
-func prepareClassifierCode(classifierCode string) (rego.PreparedEvalQuery, error) {
+func (c *LabelClassifier) evalQuery(
+	ctx context.Context,
+	q rego.PreparedEvalQuery,
+	attrs map[string]any,
+) (map[string]bool, error) {
+	// Evaluate the prepared Rego query. This performs the actual classification
+	// logic.
+	res, err := q.Eval(ctx, rego.EvalInput(attrs))
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error evaluating query for attrs %s; %w", attrs, err,
+		)
+	}
+	// Ensure the result is well-formed.
+	if len(res) != 1 {
+		return nil, fmt.Errorf("expected 1 result but found: %d", len(res))
+	}
+	if len(res[0].Expressions) != 1 {
+		return nil, fmt.Errorf("expected 1 expression but found: %d", len(res[0].Expressions))
+	}
+	if res[0].Expressions[0] == nil {
+		return nil, fmt.Errorf("expression is nil")
+	}
+	if res[0].Expressions[0].Value == nil {
+		return nil, fmt.Errorf("expression value is nil")
+	}
+	// Unpack the results. The output is expected to be a map[string]bool, where
+	// the key is the attribute name and the value is a boolean indicating
+	// whether the attribute is classified as belonging to the label.
+	val, ok := res[0].Expressions[0].Value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf(
+			"expected output type to be map[string]any, but found: %T",
+			res[0].Expressions[0].Value,
+		)
+	}
+	output := make(map[string]bool, len(val))
+	for k, v := range val {
+		if b, ok := v.(bool); ok {
+			output[k] = b
+		} else {
+			return nil, fmt.Errorf("expected value to be bool but found: %T", v)
+		}
+	}
+	return output, nil
+}
+
+func prepareClassificationRule(classifierCode string) (rego.PreparedEvalQuery, error) {
 	log.Tracef("classifier module code: '%s'", classifierCode)
 	moduleName := "classifier"
 	compiledRego, err := ast.CompileModules(map[string]string{moduleName: classifierCode})

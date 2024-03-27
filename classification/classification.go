@@ -23,9 +23,8 @@ type ClassifiedTable struct {
 
 // Result represents the classification of a data attribute.
 type Result struct {
-	Table           *ClassifiedTable `json:"table"`
-	AttributeName   string           `json:"attributeName"`
-	Classifications []*Label         `json:"classifications"`
+	AttributeName   string   `json:"attributeName"`
+	Classifications []*Label `json:"classifications"`
 }
 
 // Classifier implementations know how to turn a row of data into a sequence of
@@ -41,11 +40,7 @@ type Classifier interface {
 	// If however, there is no assigned classification, we will skip it in the
 	// results. A zero length return value is normal if none of the attributes
 	// matched the classification requirements.
-	Classify(
-		ctx context.Context,
-		table *ClassifiedTable,
-		attrs map[string]any,
-	) ([]Result, error)
+	Classify(ctx context.Context, attrs map[string]any) (map[string][]Label, error)
 }
 
 // ClassifySamples uses the provided classifiers to classify the sample data
@@ -68,14 +63,16 @@ func ClassifySamples(
 			Schema:  sample.Metadata.Schema,
 			Table:   sample.Metadata.Table,
 		}
+		// TODO: use the table -ccampo 2024-03-27
+		_ = table
 		// Classify each sampled row
 		for _, sampleResult := range sample.Results {
 			for _, classifier := range classifiers {
-				res, err := classifier.Classify(ctx, &table, sampleResult)
+				_, err := classifier.Classify(ctx, sampleResult)
 				if err != nil {
 					return nil, fmt.Errorf("error classifying sample: %w", err)
 				}
-				classifications = append(classifications, res...)
+				//classifications = append(classifications, res...)
 			}
 		}
 	}

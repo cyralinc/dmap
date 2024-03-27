@@ -7,28 +7,30 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, _) := "ADDRESS" if {
+classify(key, _) if {
 	lower(key) == "state"
 }
 
-classify(key, _) := "ADDRESS" if {
+classify(key, _) if {
 	lower(key) == "zip"
 }
 
-classify(key, _) := "ADDRESS" if {
-	lower(key) == "zipcode"
+classify(key, _) if {
+	contains(lower(key), "zip")
+	contains(lower(key), "code")
 }
 
-classify(key, _) := "ADDRESS" if {
-	lower(key) == "zipcode"
+classify(key, _) if {
+	contains(lower(key), "postal")
+	contains(lower(key), "code")
 }
 
-classify(key, _) := "ADDRESS" if {
+classify(key, _) if {
 	regex.match(`\A.*address.*\z`, lower(key))
 }
 
-classify(key, _) := "ADDRESS" if {
+classify(key, _) if {
 	regex.match(`\Astreet.*\z`, lower(key))
 }

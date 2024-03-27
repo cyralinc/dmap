@@ -7,9 +7,9 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, _) := "FULL_NAME" if {
+classify(key, _) if {
 	contains(lower(key), "full")
 	contains(lower(key), "name")
 }

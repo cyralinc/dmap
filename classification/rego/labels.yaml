@@ -11,12 +11,12 @@
 #       - tag1
 #       - tag2
 labels:
-  - name: Address
+  - name: ADDRESS
     description: Address
     tags:
       - PII
 
-  - name: Age
+  - name: AGE
     description: Age
     tags:
       - PII
@@ -36,37 +36,37 @@ labels:
     tags:
       - PII
 
-  - name: Email
+  - name: EMAIL
     description: Email address
     tags:
       - PII
 
-  - name: First Name
+  - name: FIRST_NAME
     description: First name
     tags:
       - PII
 
-  - name: Full Name
+  - name: FULL_NAME
     description: Full name
     tags:
       - PII
 
-  - name: IP Address
+  - name: IP_ADDRESS
     description: IP address
     tags:
       - PII
 
-  - name: Last Name
+  - name: LAST_NAME
     description: Last name
     tags:
       - PII
 
-  - name: Passport
+  - name: PASSPORT
     description: Passport number
     tags:
       - PII
 
-  - name: Phone Number
+  - name: PHONE
     description: Phone number
     tags:
       - PII

@@ -7,16 +7,16 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, _) := "PASSPORT" if {
+classify(key, _) if {
 	contains(lower(key), "passport")
 }
 
-classify(_, val) := "PASSPORT" if {
+classify(_, val) if {
 	regex.match(`^[A-PR-WYZ]{1,2}[1-9]\d\s?\d{4,6}[1-9]$`, val)
 }
 
-classify(_, val) := "PASSPORT" if {
+classify(_, val) if {
 	regex.match(`^[1-9]\d\s?\d{4,6}[1-9][A-PR-WY]{1,2}$`, val)
 }

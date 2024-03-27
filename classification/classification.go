@@ -48,7 +48,7 @@ type Classifier interface {
 	) ([]Result, error)
 }
 
-// ClassifySamples uses the provided Classifier to classify the sample data
+// ClassifySamples uses the provided classifiers to classify the sample data
 // passed via the "samples" parameter. It is mostly a helper function which
 // loops through each repository.Sample, retrieves the attribute names and
 // values of that sample, passes them to Classifier.Classify, and then
@@ -57,8 +57,8 @@ type Classifier interface {
 // unique classification results for a given sample set.
 func ClassifySamples(
 	ctx context.Context,
-	classifier Classifier,
 	samples []repository.Sample,
+	classifiers ...Classifier,
 ) ([]Result, error) {
 	var classifications []Result
 	for _, sample := range samples {
@@ -70,84 +70,15 @@ func ClassifySamples(
 		}
 		// Classify each sampled row
 		for _, sampleResult := range sample.Results {
-			res, err := classifier.Classify(ctx, &table, sampleResult)
-			if err != nil {
-				return nil, fmt.Errorf("error classifying sample: %w", err)
+			for _, classifier := range classifiers {
+				res, err := classifier.Classify(ctx, &table, sampleResult)
+				if err != nil {
+					return nil, fmt.Errorf("error classifying sample: %w", err)
+				}
+				classifications = append(classifications, res...)
 			}
-			classifications = append(classifications, res...)
 		}
 	}
-	return combineAndDedupe(classifications), nil
-}
-
-// AggregateClassifySamples classifies the given samples with every classifier,
-// and returns the aggregate result slice. For details on how each
-// classification is executed, see ClassifySamples.
-func AggregateClassifySamples(
-	ctx context.Context,
-	classifiers map[string]Classifier,
-	samples []repository.Sample,
-) ([]Result, error) {
-	classifications := make([]Result, 0)
-	for _, classifier := range classifiers {
-		classified, err := ClassifySamples(ctx, classifier, samples)
-		if err != nil {
-			return nil, err
-		}
-		classifications = append(classifications, classified...)
-	}
+	// TODO: combine and dedupe -ccampo 2024-03-27
 	return classifications, nil
-}
-
-// combineAndDedupe takes a slice of Result and combines the individual elements
-// when they have the same schema/table/attribute, but different labels, into a
-// Result element with combined labels. Additionally, only distinct results by
-// schema, table, and attribute are present in the return slice.
-func combineAndDedupe(results []Result) []Result {
-	set := make(map[tableAttrLabel]bool)
-	distinctLabels := make(map[tableAttr][]*Label)
-	for _, result := range results {
-		for _, lbl := range result.Classifications {
-			key := tableAttrLabel{
-				ta: tableAttr{
-					table: *result.Table,
-					attr:  result.AttributeName,
-				},
-				label: lbl.Name,
-			}
-
-			if !set[key] {
-				set[key] = true
-				distinctLabels[key.ta] = append(distinctLabels[key.ta], lbl)
-			}
-		}
-	}
-
-	distinctResults := make([]Result, 0, len(distinctLabels))
-	for ta, labels := range distinctLabels {
-		result := Result{
-			Table: &ClassifiedTable{
-				Repo:    ta.table.Repo,
-				Catalog: ta.table.Catalog,
-				Schema:  ta.table.Schema,
-				Table:   ta.table.Table,
-			},
-			AttributeName:   ta.attr,
-			Classifications: labels,
-		}
-		distinctResults = append(distinctResults, result)
-	}
-
-	return distinctResults
-}
-
-// Both tableAttr and tableAttrLabel are only used as map keys
-type tableAttr struct {
-	table ClassifiedTable
-	attr  string
-}
-
-type tableAttrLabel struct {
-	ta    tableAttr
-	label string
 }

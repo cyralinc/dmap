@@ -7,9 +7,9 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, val) := "SSN" if {
+classify(key, val) if {
 	pattern := regex.find_n(`\b(\d{9}|\d{3}\-\d{2}\-\d{4})\b`, val, 1)
 	count(pattern) == 1
 	t_val := replace(pattern[0], "-", "")

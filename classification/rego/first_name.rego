@@ -7,14 +7,14 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, _) := "FIRST_NAME" if {
+classify(key, _) if {
 	contains(lower(key), "first")
 	contains(lower(key), "name")
 }
 
-classify(key, _) := "FIRST_NAME" if {
+classify(key, _) if {
 	contains(lower(key), "given")
 	contains(lower(key), "name")
 }

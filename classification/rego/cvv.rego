@@ -7,52 +7,52 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cvv"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "csc"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "3csc"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cvc"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cav"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cid"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cvd"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cve"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "cvn"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "spc"
 }
 
-classify(key, _) := "CVV" if {
+classify(key, _) if {
 	lower(key) == "pvv"
 }
 
-classify(_, val) := "CVV" if {
+classify(_, val) if {
 	regex.match(`^\d{3,4}$`, val)
 }

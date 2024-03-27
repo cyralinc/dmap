@@ -27,7 +27,7 @@ import (
 type Scanner struct {
 	config      *config.Config
 	repository  repository.Repository
-	classifiers map[string]classification.Classifier
+	classifiers []classification.Classifier
 	publisher   publisher.Publisher
 }
 
@@ -45,7 +45,7 @@ func (s *Scanner) Init(ctx context.Context) error {
 	// init methods.
 	s.initPublisher()
 
-	if err := s.initClassifiers(); err != nil {
+	if err := s.initEmbeddedClassifiers(); err != nil {
 		return err
 	}
 	if err := s.initRepository(ctx); err != nil {
@@ -106,7 +106,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 	}
 
 	// Classify sampled data
-	classifications, err := classification.AggregateClassifySamples(ctx, s.classifiers, samples)
+	classifications, err := classification.ClassifySamples(ctx, samples, s.classifiers...)
 	if err != nil {
 		return fmt.Errorf("error classifying samples: %w", err)
 	}
@@ -129,18 +129,14 @@ func (s *Scanner) Cleanup() {
 	}
 }
 
-func (s *Scanner) initClassifiers() error {
-	lbls, err := classification.GetLabels()
+func (s *Scanner) initEmbeddedClassifiers() error {
+	classifiers, err := classification.GetEmbeddedLabelClassifiers()
 	if err != nil {
-		return fmt.Errorf("error getting labels: %w", err)
+		return fmt.Errorf("error getting embedded label classifiers: %w", err)
 	}
-	s.classifiers = make(map[string]classification.Classifier, len(lbls))
-	for _, lbl := range lbls {
-		classifier, err := classification.NewLabelClassifier(lbl)
-		if err != nil {
-			return fmt.Errorf("unable to initialize rego classifier for label %s: %w", lbl.Name, err)
-		}
-		s.classifiers[lbl.Name] = classifier
+	s.classifiers = make([]classification.Classifier, len(classifiers))
+	for i, classifier := range classifiers {
+		s.classifiers[i] = classifier
 	}
 	return nil
 }

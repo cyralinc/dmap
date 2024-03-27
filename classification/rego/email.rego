@@ -7,9 +7,9 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(_, val) := "EMAIL" if {
+classify(_, val) if {
 	regex.match(
 		`\A[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9]((\.[A-Za-z0-9])|(-[A-Za-z0-9])|[A-Za-z0-9])*\.[A-Za-z]{2,}\z`,
 		val

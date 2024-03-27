@@ -7,9 +7,9 @@ output[k] := v if {
 	v := classify(k, input[k])
 }
 
-default classify(_, _) := "UNLABELED"
+default classify(_, _) := false
 
-classify(key, val) := "AGE" if {
+classify(key, val) if {
 	lower(key) == "age"
 	regex.match(`\A((\d{1,2})|1[0-1]\d)\z`, val)
 }

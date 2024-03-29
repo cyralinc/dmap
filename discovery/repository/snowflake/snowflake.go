@@ -58,7 +58,7 @@ func NewSnowflakeRepository(_ context.Context, repoCfg config.RepoConfig) (repos
 	sqlRepo, err := genericsql.NewGenericSqlRepository(
 		repoCfg.Host,
 		RepoTypeSnowflake,
-		repoCfg.Database,
+		database,
 		connStr,
 		repoCfg.MaxOpenConns,
 		repoCfg.IncludePaths,

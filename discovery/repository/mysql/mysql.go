@@ -27,16 +27,18 @@ WHERE
 `
 )
 
-type mySqlRepository struct {
+// Repository is a repository.Repository implementation for MySQL databases.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *mySqlRepository implements repository.Repository
-var _ repository.Repository = (*mySqlRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewMySQLRepository(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+// NewRepository creates a new MySQL repository.
+func NewRepository(cfg config.RepoConfig) (*Repository, error) {
 	connStr := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s",
 		cfg.User,
@@ -48,7 +50,7 @@ func NewMySQLRepository(_ context.Context, cfg config.RepoConfig) (repository.Re
 		cfg.Database,
 	)
 
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
+	sqlRepo, err := genericsql.NewRepository(
 		cfg.Host,
 		RepoTypeMysql,
 		cfg.Database,
@@ -61,18 +63,18 @@ func NewMySQLRepository(_ context.Context, cfg config.RepoConfig) (repository.Re
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
 
-	return &mySqlRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
-func (repo *mySqlRepository) ListDatabases(ctx context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(ctx context.Context) ([]string, error) {
 	return repo.genericSqlRepo.ListDatabasesWithQuery(ctx, DatabaseQuery)
 }
 
-func (repo *mySqlRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.Introspect(ctx)
 }
 
-func (repo *mySqlRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -84,14 +86,19 @@ func (repo *mySqlRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-func (repo *mySqlRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *mySqlRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypeMysql, NewMySQLRepository)
+	repository.Register(
+		RepoTypeMysql,
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

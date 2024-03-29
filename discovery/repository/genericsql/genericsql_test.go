@@ -22,7 +22,7 @@ func Test_Introspect_IsSuccessful(t *testing.T) {
 	repoType := "genericSql"
 	database := "exampleDb"
 
-	repo := GenericSqlRepository{
+	repo := Repository{
 		repoName:     repoName,
 		repoType:     repoType,
 		database:     database,
@@ -123,7 +123,7 @@ func Test_Introspect_QueryError(t *testing.T) {
 	repoType := "genericSql"
 	database := "exampleDb"
 
-	repo := GenericSqlRepository{
+	repo := Repository{
 		repoName: repoName,
 		repoType: repoType,
 		database: database,
@@ -152,7 +152,7 @@ func Test_Introspect_RowError(t *testing.T) {
 	repoType := "genericSql"
 	database := "exampleDb"
 
-	repo := GenericSqlRepository{
+	repo := Repository{
 		repoName: repoName,
 		repoType: repoType,
 		database: database,
@@ -192,7 +192,7 @@ func Test_Introspect_Filtered(t *testing.T) {
 	repoType := "genericSql"
 	database := "exampleDb"
 
-	repo := GenericSqlRepository{
+	repo := Repository{
 		repoName: repoName,
 		repoType: repoType,
 		database: database,

@@ -40,16 +40,18 @@ ON
 `
 )
 
-type oracleRepository struct {
+// Repository is a repository.Repository implementation for Oracle databases.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *oracleRepository implements repository.Repository
-var _ repository.Repository = (*oracleRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewOracleRepository(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+// NewRepository creates a new Oracle repository.
+func NewRepository(cfg config.RepoConfig) (*Repository, error) {
 	oracleCfg, err := ParseConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse oracle config: %w", err)
@@ -64,7 +66,7 @@ func NewOracleRepository(_ context.Context, cfg config.RepoConfig) (repository.R
 		oracleCfg.ServiceName,
 	)
 
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
+	sqlRepo, err := genericsql.NewRepository(
 		cfg.Host,
 		RepoTypeOracle,
 		cfg.Database,
@@ -77,21 +79,21 @@ func NewOracleRepository(_ context.Context, cfg config.RepoConfig) (repository.R
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
 
-	return &oracleRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
 // ListDatabases is left unimplemented for Oracle, because Oracle doesn't have
 // the traditional concept of "databases". Note that Introspect already
 // identifies all the accessible objects on the server.
-func (repo *oracleRepository) ListDatabases(_ context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(_ context.Context) ([]string, error) {
 	return nil, errors.New("ListDatabases is not implemented for Oracle repos")
 }
 
-func (repo *oracleRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.IntrospectWithQuery(ctx, introspectQuery)
 }
 
-func (repo *oracleRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -108,18 +110,23 @@ func (repo *oracleRepository) SampleTable(
 
 // Ping verifies the connection to Oracle database used by this Repository.
 // Normally we would just delegate to the Ping method implemented by
-// genericsql.GenericSqlRepository. However, that implementation executes a
+// genericsql.Repository. However, that implementation executes a
 // 'SELECT 1' query to test for connectivity, and Oracle being Oracle, does not
 // like this. So instead, we defer to the native Ping method implemented by the
 // Oracle sql.DB driver.
-func (repo *oracleRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.GetDb().PingContext(ctx)
 }
 
-func (repo *oracleRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypeOracle, NewOracleRepository)
+	repository.Register(
+		RepoTypeOracle,
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

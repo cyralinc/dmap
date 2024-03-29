@@ -28,16 +28,19 @@ const (
 	DatabaseQuery = "SELECT name FROM sys.databases WHERE name != 'model' AND name != 'tempdb'"
 )
 
-type SqlServerRepository struct {
+// Repository is a repository.Repository implementation for MS SQL Server
+// databases.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *SqlServerRepository implements repository.Repository
-var _ repository.Repository = (*SqlServerRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewSqlServerRepository(_ context.Context, cfg config.RepoConfig) (*SqlServerRepository, error) {
+// NewRepository creates a new MS SQL Server repository.
+func NewRepository(cfg config.RepoConfig) (*Repository, error) {
 	connStr := fmt.Sprintf(
 		"sqlserver://%s:%s@%s:%d",
 		cfg.User,
@@ -51,7 +54,7 @@ func NewSqlServerRepository(_ context.Context, cfg config.RepoConfig) (*SqlServe
 		connStr = fmt.Sprintf(connStr+"?database=%s", cfg.Database)
 	}
 
-	genericSqlRepo, err := genericsql.NewGenericSqlRepository(
+	genericSqlRepo, err := genericsql.NewRepository(
 		cfg.Host,
 		RepoTypeSqlServer,
 		cfg.Database,
@@ -64,18 +67,18 @@ func NewSqlServerRepository(_ context.Context, cfg config.RepoConfig) (*SqlServe
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
 
-	return &SqlServerRepository{genericSqlRepo: genericSqlRepo}, nil
+	return &Repository{genericSqlRepo: genericSqlRepo}, nil
 }
 
-func (repo *SqlServerRepository) ListDatabases(ctx context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(ctx context.Context) ([]string, error) {
 	return repo.genericSqlRepo.ListDatabasesWithQuery(ctx, DatabaseQuery)
 }
 
-func (repo *SqlServerRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.Introspect(ctx)
 }
 
-func (repo *SqlServerRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -86,19 +89,19 @@ func (repo *SqlServerRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize)
 }
 
-func (repo *SqlServerRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *SqlServerRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
 	repository.Register(
 		RepoTypeSqlServer,
-		func(ctx context.Context, cfg config.RepoConfig) (repository.Repository, error) {
-			return NewSqlServerRepository(ctx, cfg)
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
 		},
 	)
 }

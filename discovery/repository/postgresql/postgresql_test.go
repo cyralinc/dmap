@@ -13,7 +13,7 @@ import (
 
 func TestListDatabases(t *testing.T) {
 	ctx, db, mock, r := initRepoTest(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	dbRows := sqlmock.NewRows([]string{"name"}).AddRow("db1").AddRow("db2")
 	mock.ExpectQuery(DatabaseQuery).WillReturnRows(dbRows)
 	dbs, err := r.ListDatabases(ctx)
@@ -21,11 +21,11 @@ func TestListDatabases(t *testing.T) {
 	require.ElementsMatch(t, []string{"db1", "db2"}, dbs)
 }
 
-func initRepoTest(t *testing.T) (context.Context, *sql.DB, sqlmock.Sqlmock, *postgresqlRepository) {
+func initRepoTest(t *testing.T) (context.Context, *sql.DB, sqlmock.Sqlmock, *Repository) {
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	return ctx, db, mock, &postgresqlRepository{
-		genericSqlRepo: genericsql.NewGenericSqlRepositoryFromDB("repoName", RepoTypePostgres, "dbName", db),
+	return ctx, db, mock, &Repository{
+		genericSqlRepo: genericsql.NewRepositoryFromDB("repoName", RepoTypePostgres, "dbName", db),
 	}
 }

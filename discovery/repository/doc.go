@@ -7,9 +7,9 @@
 // introspect and sample the underlying database it represents.
 //
 // Repository implementations should reside in their own sub-package of the
-// repository package. Each implementation should provide a constructor that
-// matches the signature of the RepoConstructor type, and pass it to Register
-// function as part of the repository package's init function. This will make
+// repository package. Each implementation register itself with the repository
+// registry by calling the Register function with a RepoConstructor function
+// that returns a new instance of the repository implementation. This will make
 // the repository implementation available to the NewRepository factory
-// function.
+// function. Registration is typically done in the sub-package's init function.
 package repository

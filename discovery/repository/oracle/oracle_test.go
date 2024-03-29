@@ -23,8 +23,8 @@ const (
 
 type OracleTestSuite struct {
 	suite.Suite
-	repo                              oracleRepository
-	mock                              sqlmock.Sqlmock
+	repo Repository
+	mock sqlmock.Sqlmock
 	databaseUserQuery                 string
 	databaseRolesForUserQueryTemplate string
 }
@@ -71,8 +71,8 @@ func (s *OracleTestSuite) BeforeTest(suiteName, testName string) {
 	require.NoError(s.T(), err)
 
 	s.mock = mock
-	s.repo = oracleRepository{
-		genericSqlRepo: genericsql.NewGenericSqlRepositoryFromDB(
+	s.repo = Repository{
+		genericSqlRepo: genericsql.NewRepositoryFromDB(
 			"oracle-repo",
 			"oracle-driver",
 			"oracle-db",

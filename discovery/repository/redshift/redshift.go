@@ -17,16 +17,18 @@ const (
 	RepoTypeRedshift = "redshift"
 )
 
-type redshiftRepository struct {
+// Repository is a Redshift-specific repository.Repository implementation.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *redshiftRepository implements repository.Repository
-var _ repository.Repository = (*redshiftRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewRedshiftRepository(_ context.Context, repoCfg config.RepoConfig) (repository.Repository, error) {
+// NewRepository creates a new Redshift repository.
+func NewRepository(repoCfg config.RepoConfig) (*Repository, error) {
 	pgCfg, err := postgresql.ParseConfig(repoCfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postgres config: %w", err)
@@ -45,7 +47,7 @@ func NewRedshiftRepository(_ context.Context, repoCfg config.RepoConfig) (reposi
 		database,
 		pgCfg.ConnOptsStr,
 	)
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
+	sqlRepo, err := genericsql.NewRepository(
 		repoCfg.Host,
 		postgresql.RepoTypePostgres,
 		repoCfg.Database,
@@ -57,19 +59,19 @@ func NewRedshiftRepository(_ context.Context, repoCfg config.RepoConfig) (reposi
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
-	return &redshiftRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
-func (repo *redshiftRepository) ListDatabases(ctx context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(ctx context.Context) ([]string, error) {
 	// Redshift and Postgres use the same query to list the server databases.
 	return repo.genericSqlRepo.ListDatabasesWithQuery(ctx, postgresql.DatabaseQuery)
 }
 
-func (repo *redshiftRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.Introspect(ctx)
 }
 
-func (repo *redshiftRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -81,14 +83,19 @@ func (repo *redshiftRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-func (repo *redshiftRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *redshiftRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypeRedshift, NewRedshiftRepository)
+	repository.Register(
+		RepoTypeRedshift,
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

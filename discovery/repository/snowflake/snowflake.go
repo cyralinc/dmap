@@ -26,60 +26,62 @@ WHERE
 `
 )
 
-type snowflakeRepository struct {
+// Repository is a repository.Repository implementation for Snowflake databases.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *snowflakeRepository implements repository.Repository
-var _ repository.Repository = (*snowflakeRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewSnowflakeRepository(_ context.Context, repoCfg config.RepoConfig) (repository.Repository, error) {
-	snowflakeCfg, err := ParseConfig(repoCfg)
+// NewRepository creates a new Snowflake repository.
+func NewRepository(cfg config.RepoConfig) (*Repository, error) {
+	snowflakeCfg, err := ParseConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error when parsing snowflake config: %w", err)
 	}
-	database := repoCfg.Database
+	database := cfg.Database
 	// Connect to the default database, if unspecified.
 	if database == "" {
 		database = "SNOWFLAKE"
 	}
 	connStr := fmt.Sprintf(
 		"%s:%s@%s/%s?role=%s&warehouse=%s",
-		repoCfg.User,
-		repoCfg.Password,
+		cfg.User,
+		cfg.Password,
 		snowflakeCfg.Account,
-		repoCfg.Database,
+		cfg.Database,
 		snowflakeCfg.Role,
 		snowflakeCfg.Warehouse,
 	)
 
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
-		repoCfg.Host,
+	sqlRepo, err := genericsql.NewRepository(
+		cfg.Host,
 		RepoTypeSnowflake,
 		database,
 		connStr,
-		repoCfg.MaxOpenConns,
-		repoCfg.IncludePaths,
-		repoCfg.ExcludePaths,
+		cfg.MaxOpenConns,
+		cfg.IncludePaths,
+		cfg.ExcludePaths,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
 
-	return &snowflakeRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
-func (repo *snowflakeRepository) ListDatabases(ctx context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(ctx context.Context) ([]string, error) {
 	return repo.genericSqlRepo.ListDatabasesWithQuery(ctx, DatabaseQuery)
 }
 
-func (repo *snowflakeRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.Introspect(ctx)
 }
 
-func (repo *snowflakeRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -87,14 +89,19 @@ func (repo *snowflakeRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTable(ctx, meta, params)
 }
 
-func (repo *snowflakeRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *snowflakeRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypeSnowflake, NewSnowflakeRepository)
+	repository.Register(
+		RepoTypeSnowflake,
+		func(ctx context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

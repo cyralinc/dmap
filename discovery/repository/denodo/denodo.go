@@ -31,16 +31,18 @@ const (
 		"CATALOG_VDP_METADATA_VIEWS()"
 )
 
-type denodoRepository struct {
+// Repository is a repository.Repository implementation for Denodo.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *denodoRepository implements repository.Repository
-var _ repository.Repository = (*denodoRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewDenodoRepository(_ context.Context, repoCfg config.RepoConfig) (repository.Repository, error) {
+// NewRepository is the constructor for Repository.
+func NewRepository(repoCfg config.RepoConfig) (*Repository, error) {
 	pgCfg, err := postgresql.ParseConfig(repoCfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postgres config: %w", err)
@@ -59,7 +61,7 @@ func NewDenodoRepository(_ context.Context, repoCfg config.RepoConfig) (reposito
 		pgCfg.ConnOptsStr,
 	)
 
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
+	sqlRepo, err := genericsql.NewRepository(
 		repoCfg.Host,
 		postgresql.RepoTypePostgres,
 		repoCfg.Database,
@@ -72,18 +74,18 @@ func NewDenodoRepository(_ context.Context, repoCfg config.RepoConfig) (reposito
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
 
-	return &denodoRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
-func (repo *denodoRepository) ListDatabases(_ context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(_ context.Context) ([]string, error) {
 	return nil, errors.New("ListDatabases is not implemented for Denodo repositories")
 }
 
-func (repo *denodoRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.IntrospectWithQuery(ctx, IntrospectQuery)
 }
 
-func (repo *denodoRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -101,14 +103,19 @@ func (repo *denodoRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTableWithQuery(ctx, meta, query)
 }
 
-func (repo *denodoRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *denodoRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypeDenodo, NewDenodoRepository)
+	repository.Register(
+		RepoTypeDenodo,
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

@@ -27,16 +27,18 @@ WHERE
 `
 )
 
-type postgresqlRepository struct {
+// Repository is a PostgreSQL-specific repository.Repository implementation.
+type Repository struct {
 	// The majority of the repository.Repository functionality is delegated to
 	// a generic SQL repository instance (genericSqlRepo).
-	genericSqlRepo *genericsql.GenericSqlRepository
+	genericSqlRepo *genericsql.Repository
 }
 
-// *postgresqlRepository implements repository.Repository
-var _ repository.Repository = (*postgresqlRepository)(nil)
+// Repository implements repository.Repository
+var _ repository.Repository = (*Repository)(nil)
 
-func NewPostgresqlRepository(_ context.Context, repoCfg config.RepoConfig) (repository.Repository, error) {
+// NewRepository creates a new PostgreSQL repository.
+func NewRepository(repoCfg config.RepoConfig) (*Repository, error) {
 	pgCfg, err := ParseConfig(repoCfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse postgresql config: %w", err)
@@ -55,7 +57,7 @@ func NewPostgresqlRepository(_ context.Context, repoCfg config.RepoConfig) (repo
 		database,
 		pgCfg.ConnOptsStr,
 	)
-	sqlRepo, err := genericsql.NewGenericSqlRepository(
+	sqlRepo, err := genericsql.NewRepository(
 		repoCfg.Host,
 		RepoTypePostgres,
 		repoCfg.Database,
@@ -67,18 +69,18 @@ func NewPostgresqlRepository(_ context.Context, repoCfg config.RepoConfig) (repo
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)
 	}
-	return &postgresqlRepository{genericSqlRepo: sqlRepo}, nil
+	return &Repository{genericSqlRepo: sqlRepo}, nil
 }
 
-func (repo *postgresqlRepository) ListDatabases(ctx context.Context) ([]string, error) {
+func (repo *Repository) ListDatabases(ctx context.Context) ([]string, error) {
 	return repo.genericSqlRepo.ListDatabasesWithQuery(ctx, DatabaseQuery)
 }
 
-func (repo *postgresqlRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.genericSqlRepo.Introspect(ctx)
 }
 
-func (repo *postgresqlRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -90,14 +92,19 @@ func (repo *postgresqlRepository) SampleTable(
 	return repo.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-func (repo *postgresqlRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	return repo.genericSqlRepo.Ping(ctx)
 }
 
-func (repo *postgresqlRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.genericSqlRepo.Close()
 }
 
 func init() {
-	repository.Register(RepoTypePostgres, NewPostgresqlRepository)
+	repository.Register(
+		RepoTypePostgres,
+		func(_ context.Context, cfg config.RepoConfig) (repository.Repository, error) {
+			return NewRepository(cfg)
+		},
+	)
 }

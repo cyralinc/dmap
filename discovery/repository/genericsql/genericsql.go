@@ -39,10 +39,10 @@ const (
 	SampleQueryTemplate = "SELECT %s FROM %s.%s LIMIT ? OFFSET ?"
 )
 
-// GenericSqlRepository implements generic SQL functionalities that
-// works for a subset of ANSI SQL compatible databases and may be
-// useful for some repository.Repository implementations.
-type GenericSqlRepository struct {
+// Repository implements generic SQL functionalities that works for a subset of
+// ANSI SQL compatible databases, and may be useful for some
+// repository.Repository implementations.
+type Repository struct {
 	repoName     string
 	repoType     string
 	database     string
@@ -51,21 +51,25 @@ type GenericSqlRepository struct {
 	excludePaths []glob.Glob
 }
 
-// NewGenericSqlRepository is a constructor for the GenericSqlRepository type.
-// It establishes a database connection for a given repoType and returns a
-// pointer to a GenericSqlRepository instance.
-func NewGenericSqlRepository(
+// NewRepository is a constructor for the Repository type. It opens a database
+// handle for a given repoType and returns a pointer to a Repository instance. A
+// connection may or may not be established depending on the underlying database
+// type, as determined by the repoType parameter. The maxOpenConns parameter
+// specifies the maximum number of open connections to the database. The
+// repoIncludePaths and repoExcludePaths parameters are used to filter the
+// tables and columns that are introspected by the repository.
+func NewRepository(
 	repoName, repoType, database, connStr string, maxOpenConns uint,
 	repoIncludePaths, repoExcludePaths []glob.Glob,
 ) (
-	*GenericSqlRepository,
+	*Repository,
 	error,
 ) {
 	db, err := getDbHandle(repoType, connStr, maxOpenConns)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving DB handle for repo type %s: %w", repoType, err)
 	}
-	return &GenericSqlRepository{
+	return &Repository{
 		repoName:     repoName,
 		repoType:     repoType,
 		database:     database,
@@ -75,13 +79,13 @@ func NewGenericSqlRepository(
 	}, nil
 }
 
-// NewGenericSqlRepositoryFromDB instantiate a new *GenericSqlRepository based
+// NewRepositoryFromDB instantiate a new *Repository based
 // on a given db connection. This can be used by tests to mock the database.
-func NewGenericSqlRepositoryFromDB(
+func NewRepositoryFromDB(
 	repoName, repoType, database string,
 	db *sql.DB,
-) *GenericSqlRepository {
-	return &GenericSqlRepository{
+) *Repository {
+	return &Repository{
 		repoName: repoName,
 		repoType: repoType,
 		database: database,
@@ -93,7 +97,7 @@ func NewGenericSqlRepositoryFromDB(
 // server, as determined by the given query. The query is expected to return
 // a row set containing a single column corresponding to the database name. If
 // the query returns more than one column, an error will be returned.
-func (repo *GenericSqlRepository) ListDatabasesWithQuery(
+func (repo *Repository) ListDatabasesWithQuery(
 	ctx context.Context,
 	query string,
 	params ...any,
@@ -120,23 +124,21 @@ func (repo *GenericSqlRepository) ListDatabasesWithQuery(
 }
 
 // Introspect calls IntrospectWithQuery with a default query string
-func (repo *GenericSqlRepository) Introspect(ctx context.Context) (*repository.Metadata, error) {
+func (repo *Repository) Introspect(ctx context.Context) (*repository.Metadata, error) {
 	return repo.IntrospectWithQuery(ctx, IntrospectQuery)
 }
 
-/*
-IntrospectWithQuery executes a query against the information_schema table in the
-database which returns a four-column (all varchar) row set (of N rows, depending
-on the number of tables in the database) in the form:
-
-table_schema, table_name, column_name, data_type
-
-This row set represents all the columns of all the tables in the repository.
-The row set is then parsed into an instance of repository.Metadata and
-returned. Additionally, any errors which occur during the query execution or
-parsing process will be returned.
-*/
-func (repo *GenericSqlRepository) IntrospectWithQuery(
+// IntrospectWithQuery executes a query against the information_schema table in
+// the database which returns a four-column (all varchar) row set (of N rows,
+// depending on the number of tables in the database) in the form:
+//
+// table_schema, table_name, column_name, data_type
+//
+// This row set represents all the columns of all the tables in the repository.
+// The row set is then parsed into an instance of repository.Metadata and
+// returned. Additionally, any errors which occur during the query execution or
+// parsing process will be returned.
+func (repo *Repository) IntrospectWithQuery(
 	ctx context.Context,
 	query string,
 ) (*repository.Metadata, error) {
@@ -157,7 +159,7 @@ func (repo *GenericSqlRepository) IntrospectWithQuery(
 	return repoMeta, nil
 }
 
-func (repo *GenericSqlRepository) SampleTable(
+func (repo *Repository) SampleTable(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	params repository.SampleParameters,
@@ -170,7 +172,7 @@ func (repo *GenericSqlRepository) SampleTable(
 
 // SampleTableWithQuery calls SampleTable with a custom SQL query. Any
 // placeholder parameters in the query should be passed via params.
-func (repo *GenericSqlRepository) SampleTableWithQuery(
+func (repo *Repository) SampleTableWithQuery(
 	ctx context.Context,
 	meta *repository.TableMetadata,
 	query string,
@@ -210,7 +212,7 @@ func (repo *GenericSqlRepository) SampleTableWithQuery(
 	return sample, nil
 }
 
-func (repo *GenericSqlRepository) Ping(ctx context.Context) error {
+func (repo *Repository) Ping(ctx context.Context) error {
 	log.Tracef("Query: %s", PingQuery)
 	rows, err := repo.db.QueryContext(ctx, PingQuery)
 	if err != nil {
@@ -221,11 +223,11 @@ func (repo *GenericSqlRepository) Ping(ctx context.Context) error {
 }
 
 // GetDb is a getter for the repository's sql.DB handle.
-func (repo *GenericSqlRepository) GetDb() *sql.DB {
+func (repo *Repository) GetDb() *sql.DB {
 	return repo.db
 }
 
-func (repo *GenericSqlRepository) Close() error {
+func (repo *Repository) Close() error {
 	return repo.db.Close()
 }
 

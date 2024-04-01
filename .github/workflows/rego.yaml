@@ -1,4 +1,4 @@
-name: Run Rego Linter and Tests
+name: Rego Lint and Test
 
 on:
   push:
@@ -16,7 +16,6 @@ jobs:
       - name: Setup Regal
         uses: StyraInc/setup-regal@v1
         with:
-          # For production workflows, use a specific version, like v0.16.0
           version: latest
 
       - name: Lint
@@ -27,7 +26,7 @@ jobs:
       - name: Setup OPA
         uses: open-policy-agent/setup-opa@v2
         with:
-          version: 1.0.0
+          version: latest
 
       - name: Run OPA Tests
         run: opa test classification/labels/*.rego -v

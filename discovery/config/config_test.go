@@ -6,34 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUtil(t *testing.T) {
-	for scenario, fn := range map[string]func(
-		t *testing.T,
-	){
-		"build connection string succeeds":                            testBuildConnOptionsSucc,
-		"build connection string fails":                               testBuildConnOptionsFail,
-		"build map from correct connection options succeeds":          testMapConnOptionsSucc,
-		"build map from missing connection options does not err":      testMapConnOptionsMissing,
-		"build map from non-list connection options fails":            testMapConnOptionsMalformedMap,
-		"build map from malformed (non-'=') connection options fails": testMapConnOptionsMalformedColon,
-		"fetch correct advanced config succeeds":                      testAdvancedConfigSucc,
-		"fetch advanced config with missing parameter errs":           testAdvancedConfigMissing,
-		"fetch advanced config with malformed parameters errs":        testAdvancedConfigMalformed,
-	} {
-		t.Run(
-			scenario, func(t *testing.T) {
-				teardown := setupTest(t)
-				defer teardown()
-				fn(t)
-			},
-		)
-	}
-}
-
-func setupTest(t *testing.T) func() {
-	return func() {}
-}
-
 // Returns a correct repo config
 func getSampleRepoConfig() RepoConfig {
 	return RepoConfig{
@@ -43,14 +15,14 @@ func getSampleRepoConfig() RepoConfig {
 	}
 }
 
-func testBuildConnOptionsSucc(t *testing.T) {
+func TestBuildConnOptionsSucc(t *testing.T) {
 	sampleRepoCfg := getSampleRepoConfig()
 	connOptsStr, err := BuildConnOptsStr(sampleRepoCfg)
 	require.NoError(t, err)
 	require.Equal(t, connOptsStr, "?sslmode=disable")
 }
 
-func testBuildConnOptionsFail(t *testing.T) {
+func TestBuildConnOptionsFail(t *testing.T) {
 	invalidRepoCfg := RepoConfig{
 		Advanced: map[string]any{
 			// Invalid: map instead of string
@@ -64,9 +36,9 @@ func testBuildConnOptionsFail(t *testing.T) {
 	require.Empty(t, connOptsStr)
 }
 
-func testMapConnOptionsSucc(t *testing.T) {
+func TestMapConnOptionsSucc(t *testing.T) {
 	sampleRepoCfg := getSampleRepoConfig()
-	connOptsMap, err := MapFromConnOpts(sampleRepoCfg)
+	connOptsMap, err := mapFromConnOpts(sampleRepoCfg)
 	require.NoError(t, err)
 	require.EqualValues(
 		t, connOptsMap, map[string]string{
@@ -76,14 +48,14 @@ func testMapConnOptionsSucc(t *testing.T) {
 }
 
 // The mapping should only fail if the config is malformed, not if it is missing
-func testMapConnOptionsMissing(t *testing.T) {
+func TestMapConnOptionsMissing(t *testing.T) {
 	sampleCfg := RepoConfig{}
-	optsMap, err := MapFromConnOpts(sampleCfg)
+	optsMap, err := mapFromConnOpts(sampleCfg)
 	require.NoError(t, err)
 	require.Empty(t, optsMap)
 }
 
-func testMapConnOptionsMalformedMap(t *testing.T) {
+func TestMapConnOptionsMalformedMap(t *testing.T) {
 	sampleCfg := RepoConfig{
 		Advanced: map[string]any{
 			// Let's put a map instead of the required list
@@ -92,22 +64,22 @@ func testMapConnOptionsMalformedMap(t *testing.T) {
 			},
 		},
 	}
-	_, err := MapFromConnOpts(sampleCfg)
+	_, err := mapFromConnOpts(sampleCfg)
 	require.Error(t, err)
 }
 
-func testMapConnOptionsMalformedColon(t *testing.T) {
+func TestMapConnOptionsMalformedColon(t *testing.T) {
 	sampleCfg := RepoConfig{
 		Advanced: map[string]any{
 			// Let's use a colon instead of '=' to divide options
 			configConnOpts: []string{"sslmode:disable"},
 		},
 	}
-	_, err := MapFromConnOpts(sampleCfg)
+	_, err := mapFromConnOpts(sampleCfg)
 	require.Error(t, err)
 }
 
-func testAdvancedConfigSucc(t *testing.T) {
+func TestAdvancedConfigSucc(t *testing.T) {
 	sampleCfg := RepoConfig{
 		Advanced: map[string]any{
 			"snowflake": map[string]any{
@@ -131,7 +103,7 @@ func testAdvancedConfigSucc(t *testing.T) {
 	)
 }
 
-func testAdvancedConfigMissing(t *testing.T) {
+func TestAdvancedConfigMissing(t *testing.T) {
 	// Without the snowflake config at all
 	sampleCfg := RepoConfig{
 		Advanced: map[string]any{},
@@ -159,7 +131,7 @@ func testAdvancedConfigMissing(t *testing.T) {
 	require.Error(t, err)
 }
 
-func testAdvancedConfigMalformed(t *testing.T) {
+func TestAdvancedConfigMalformed(t *testing.T) {
 	sampleCfg := RepoConfig{
 		Advanced: map[string]any{
 			"snowflake": map[string]any{

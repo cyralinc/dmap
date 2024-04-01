@@ -1,0 +1,33 @@
+name: Run Rego Linter and Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Regal
+        uses: StyraInc/setup-regal@v1
+        with:
+          # For production workflows, use a specific version, like v0.16.0
+          version: latest
+
+      - name: Lint
+        # Disable the line-length check for now, as it's too strict: it flags
+        # the long regexes in various classification policies.
+        run: regal lint --format=github --disable=line-length ./classification/labels/
+
+      - name: Setup OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: 1.0.0
+
+      - name: Run OPA Tests
+        run: opa test classification/labels/*.rego -v

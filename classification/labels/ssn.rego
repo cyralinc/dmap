@@ -2,6 +2,8 @@ package classifier_ssn
 
 import rego.v1
 
+# METADATA
+# entrypoint: true
 output[k] := v if {
 	some k in object.keys(input)
 	v := classify(k, input[k])

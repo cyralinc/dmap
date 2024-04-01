@@ -1,13 +1,15 @@
 # Contains all the predefined data labels by Cyral. To add a new predefined
 # label, define it in this file along with its classification rule Rego code in
-# a '<label>.rego' file.
+# a '<label>.rego' file. The Rego file name should match the lowercase label
+# name, with spaces replaced by underscores. For example, the Rego file for the
+# 'ADDRESS' label should be named 'address.rego'.
 #
 # YAML structure:
 #
-# labels:               # The list of labels
-#   FOO:                # The label name
-#     description: bar  # The label description
-#     tags:             # The label tags (list)
+# labels:               # The list of labels.
+#   FOO:                # The label name.
+#     description: bar  # The label description.
+#     tags:             # The label tags (list), e.g., PII, PCI, etc.
 #       - tag1
 #       - tag2
 labels:

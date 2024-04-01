@@ -12,7 +12,7 @@ type RepoScanCmd struct {
 }
 
 func (cmd *RepoScanCmd) Run(_ *Globals) error {
-	craw := discovery.NewScanner(&cmd.Config)
-	defer craw.Cleanup()
-	return craw.InitAndRun(context.Background())
+	scanner := discovery.NewScanner(&cmd.Config)
+	defer scanner.Cleanup()
+	return scanner.InitAndRun(context.Background())
 }

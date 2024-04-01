@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	//go:embed rego/*.rego
+	//go:embed labels/*.rego
 	regoFs embed.FS
-	//go:embed rego/labels.yaml
+	//go:embed labels/labels.yaml
 	labelsYaml string
 )
 

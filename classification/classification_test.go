@@ -63,16 +63,16 @@ func TestMerge_WhenCalledWithExistingAttributes_ShouldOverwrite(t *testing.T) {
 
 func TestClassifySamples_SingleTable(t *testing.T) {
 	ctx := context.Background()
-	meta := repository.SampleMetadata{
+	meta := sql.SampleMetadata{
 		Repo:     "repo",
 		Database: "db",
 		Schema:   "schema",
 		Table:    "table",
 	}
 
-	sample := repository.Sample{
+	sample := sql.Sample{
 		Metadata: meta,
-		Results: []repository.SampleResult{
+		Results: []sql.SampleResult{
 			{
 				"age":             "52",
 				"social_sec_num":  "512-23-4258",
@@ -136,7 +136,7 @@ func TestClassifySamples_SingleTable(t *testing.T) {
 			},
 		},
 	}
-	actual, err := ClassifySamples(ctx, []repository.Sample{sample}, classifier)
+	actual, err := ClassifySamples(ctx, []sql.Sample{sample}, classifier)
 	require.NoError(t, err)
 	require.Len(t, actual, len(expected))
 	for i := range actual {
@@ -146,23 +146,23 @@ func TestClassifySamples_SingleTable(t *testing.T) {
 
 func TestClassifySamples_MultipleTables(t *testing.T) {
 	ctx := context.Background()
-	meta1 := repository.SampleMetadata{
+	meta1 := sql.SampleMetadata{
 		Repo:     "repo1",
 		Database: "db1",
 		Schema:   "schema1",
 		Table:    "table1",
 	}
-	meta2 := repository.SampleMetadata{
+	meta2 := sql.SampleMetadata{
 		Repo:     "repo2",
 		Database: "db2",
 		Schema:   "schema2",
 		Table:    "table2",
 	}
 
-	samples := []repository.Sample{
+	samples := []sql.Sample{
 		{
 			Metadata: meta1,
-			Results: []repository.SampleResult{
+			Results: []sql.SampleResult{
 				{
 					"age":             "52",
 					"social_sec_num":  "512-23-4258",
@@ -177,7 +177,7 @@ func TestClassifySamples_MultipleTables(t *testing.T) {
 		},
 		{
 			Metadata: meta2,
-			Results: []repository.SampleResult{
+			Results: []sql.SampleResult{
 				{
 					"fullname": "John Doe",
 					"dob":      "2000-01-01",

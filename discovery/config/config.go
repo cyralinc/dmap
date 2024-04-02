@@ -24,16 +24,16 @@ type DmapConfig struct {
 	ClientSecret string `help:"API client secret to access the Dmap API."` //#nosec G101 -- false positive
 }
 
-// RepoConfig is the necessary configuration to connect to a data repository.
+// RepoConfig is the necessary configuration to connect to a data sql.
 type RepoConfig struct {
 	Type         string         `help:"Type of repository to connect to (postgres|mysql|oracle|sqlserver|snowflake|redshift|denodo)." enum:"postgres,mysql,oracle,sqlserver,snowflake,redshift,denodo" required:""`
-	Host         string         `help:"Hostname of the repository." required:""`
-	Port         uint16         `help:"Port of the repository." required:""`
-	User         string         `help:"Username to connect to the repository." required:""`
-	Password     string         `help:"Password to connect to the repository." required:""`
-	Advanced     map[string]any `help:"Advanced configuration for the repository."`
+	Host         string         `help:"Hostname of the sql." required:""`
+	Port         uint16         `help:"Port of the sql." required:""`
+	User         string         `help:"Username to connect to the sql." required:""`
+	Password     string         `help:"Password to connect to the sql." required:""`
+	Advanced     map[string]any `help:"Advanced configuration for the sql."`
 	Database     string         `help:"Name of the database to connect to. If not specified, the default database is used."`
-	MaxOpenConns uint           `help:"Maximum number of open connections to the repository." default:"10"`
+	MaxOpenConns uint           `help:"Maximum number of open connections to the sql." default:"10"`
 	SampleSize   uint           `help:"Number of rows to sample from the repository (per table)." default:"5"`
 	IncludePaths GlobFlag       `help:"List of glob patterns to include when querying the database(s), as a comma separated list." default:"*"`
 	ExcludePaths GlobFlag       `help:"List of glob patterns to exclude when querying the database(s), as a comma separated list." default:""`

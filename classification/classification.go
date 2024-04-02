@@ -67,7 +67,7 @@ func (c Result) Merge(other Result) {
 // unique classification results for a given sample set.
 func ClassifySamples(
 	ctx context.Context,
-	samples []repository.Sample,
+	samples []sql.Sample,
 	classifier Classifier,
 ) ([]ClassifiedTable, error) {
 	tables := make([]ClassifiedTable, 0, len(samples))

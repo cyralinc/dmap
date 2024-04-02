@@ -10,75 +10,92 @@ import (
 	"github.com/cyralinc/dmap/classification"
 	"github.com/cyralinc/dmap/classification/publisher"
 	"github.com/cyralinc/dmap/discovery/config"
-	"github.com/cyralinc/dmap/discovery/repository"
-	"github.com/cyralinc/dmap/discovery/repository/oracle"
-
-	// Registers repo types for use via 'init' side effects
-	_ "github.com/cyralinc/dmap/discovery/repository/denodo"
-	_ "github.com/cyralinc/dmap/discovery/repository/mysql"
-	_ "github.com/cyralinc/dmap/discovery/repository/oracle"
-	_ "github.com/cyralinc/dmap/discovery/repository/postgresql"
-	_ "github.com/cyralinc/dmap/discovery/repository/redshift"
-	_ "github.com/cyralinc/dmap/discovery/repository/snowflake"
-	_ "github.com/cyralinc/dmap/discovery/repository/sqlserver"
+	"github.com/cyralinc/dmap/discovery/sql"
 )
 
 // Scanner is a data discovery scanner that scans a data repository for
 // sensitive data. It also classifies the data and publishes the results to
 // the configured external sources.
 type Scanner struct {
-	config         *config.Config
-	repository     repository.Repository
-	embeddedLabels []classification.Label
-	customLabels   []classification.Label
-	classifier     *classification.LabelClassifier
-	publisher      publisher.Publisher
-	initialized    bool
+	config     *config.Config
+	repository sql.Repository
+	classifier classification.Classifier
+	publisher  publisher.Publisher
 }
 
-// NewScanner creates a new Scanner instance with the given configuration.
-func NewScanner(config *config.Config) Scanner {
-	return Scanner{config: config}
+// ScannerOption is a functional option type for the Scanner type.
+type ScannerOption func(*Scanner)
+
+// Repository is a functional option that sets the repository for the Scanner.
+func Repository(r sql.Repository) ScannerOption {
+	return func(s *Scanner) { s.repository = r }
 }
 
-// Init initializes the Scanner instance. It must be called before calling Run.
-func (s *Scanner) Init(ctx context.Context) error {
-	if s.config == nil {
-		return errors.New("unable to start crawler: config not found")
-	}
-	// Note: order is important here because we don't have nil checks in these
-	// init methods.
-	s.initPublisher()
-	if err := s.initEmbeddedLabels(); err != nil {
-		return err
-	}
-	if err := s.initLabelClassifier(); err != nil {
-		return err
-	}
-	if err := s.initRepository(ctx); err != nil {
-		return err
-	}
-	// Done!
-	s.initialized = true
-	return nil
+// Classifier is a functional option that sets the classifier for the Scanner.
+func Classifier(c classification.Classifier) ScannerOption {
+	return func(s *Scanner) { s.classifier = c }
 }
 
-// Run runs the data repository scan. It samples the data repository, classifies
-// the data, and publishes the results to the configured external sources.
-func (s *Scanner) Run(ctx context.Context) error {
-	if !s.initialized {
-		return errors.New("scanner not initialized")
+// Publisher is a functional option that sets the publisher for the Scanner.
+func Publisher(p publisher.Publisher) ScannerOption {
+	return func(s *Scanner) { s.publisher = p }
+}
+
+// NewScanner creates a new Scanner instance with the provided configuration.
+func NewScanner(
+	ctx context.Context,
+	config *config.Config,
+	opts ...ScannerOption,
+) (*Scanner, error) {
+	if config == nil {
+		return nil, errors.New("config can't be nil")
 	}
-	sampleParams := repository.SampleParameters{SampleSize: s.config.Repo.SampleSize}
-	var samples []repository.Sample
+	s := &Scanner{config: config}
+	// Apply options.
+	for _, opt := range opts {
+		opt(s)
+	}
+	if s.publisher == nil {
+		// Default to stdout publisher.
+		s.publisher = publisher.NewStdOutPublisher()
+	}
+	if s.classifier == nil {
+		// Create a new label classifier with the embedded labels.
+		lbls, err := classification.GetEmbeddedLabels()
+		if err != nil {
+			return nil, fmt.Errorf("error getting embedded labels: %w", err)
+		}
+		c, err := classification.NewLabelClassifier(lbls.ToSlice()...)
+		if err != nil {
+			return nil, fmt.Errorf("error creating new label classifier: %w", err)
+		}
+		s.classifier = c
+	}
+	if s.repository == nil {
+		// Get a repository instance from the default registry.
+		repo, err := sql.NewRepository(ctx, s.config.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("error connecting to database: %w", err)
+		}
+		s.repository = repo
+	}
+	return s, nil
+}
+
+// Scan performs the data repository scan. It introspects and samples the
+// repository, classifies the sampled data, and publishes the results to the
+// configured publisher.
+func (s *Scanner) Scan(ctx context.Context) error {
+	sampleParams := sql.SampleParameters{SampleSize: s.config.Repo.SampleSize}
+	var samples []sql.Sample
 	// The name of the database to connect to has been left unspecified by
 	// the user, so we try to connect and sample all databases instead. Note
 	// that Oracle doesn't really have the concept of "databases", and thus
 	// the Scanner always scans the entire database, so only the single
 	// (default) repository instance is required in that case.
-	if s.config.Repo.Database == "" && s.config.Repo.Type != oracle.RepoTypeOracle {
+	if s.config.Repo.Database == "" && s.config.Repo.Type != sql.RepoTypeOracle {
 		var err error
-		samples, err = repository.SampleAllDatabases(
+		samples, err = sql.SampleAllDatabases(
 			ctx,
 			s.repository,
 			s.config.Repo,
@@ -99,7 +116,7 @@ func (s *Scanner) Run(ctx context.Context) error {
 		// we already have a repository instance for it. Just use it to
 		// sample that database only.
 		var err error
-		samples, err = repository.SampleRepository(ctx, s.repository, sampleParams)
+		samples, err = sql.SampleRepository(ctx, s.repository, sampleParams)
 		if err != nil {
 			err = fmt.Errorf("error gathering repository data samples: %w", err)
 			// If we didn't get any samples, just return the error.
@@ -129,51 +146,10 @@ func (s *Scanner) Run(ctx context.Context) error {
 	return nil
 }
 
-// InitAndRun initializes the Scanner instance and runs the scan. It is a
-// convenience method that calls Init followed by Run.
-func (s *Scanner) InitAndRun(ctx context.Context) error {
-	if err := s.Init(ctx); err != nil {
-		return err
-	}
-	return s.Run(ctx)
-}
-
+// Cleanup performs cleanup operations for the Scanner.
 func (s *Scanner) Cleanup() {
 	// Nil checks are prevent panics if deps are not yet initialized.
 	if s.repository != nil {
 		_ = s.repository.Close()
 	}
-}
-
-func (s *Scanner) initEmbeddedLabels() error {
-	lbls, err := classification.GetEmbeddedLabels()
-	if err != nil {
-		return fmt.Errorf("error getting embedded labels: %w", err)
-	}
-	s.embeddedLabels = lbls.ToSlice()
-	return nil
-}
-
-func (s *Scanner) initLabelClassifier() error {
-	lbls := append(s.embeddedLabels, s.customLabels...)
-	c, err := classification.NewLabelClassifier(lbls...)
-	if err != nil {
-		return fmt.Errorf("error creating label classifier: %w", err)
-	}
-	s.classifier = c
-	return nil
-}
-
-func (s *Scanner) initPublisher() {
-	s.publisher = publisher.NewStdOutPublisher()
-}
-
-func (s *Scanner) initRepository(ctx context.Context) error {
-	// Connect to database
-	repo, err := repository.NewRepository(ctx, s.config.Repo)
-	if err != nil {
-		return fmt.Errorf("error connecting to database: %w", err)
-	}
-	s.repository = repo
-	return nil
 }

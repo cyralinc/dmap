@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cyralinc/dmap/discovery"
 	"github.com/cyralinc/dmap/discovery/config"
@@ -12,7 +13,11 @@ type RepoScanCmd struct {
 }
 
 func (cmd *RepoScanCmd) Run(_ *Globals) error {
-	scanner := discovery.NewScanner(&cmd.Config)
+	ctx := context.Background()
+	scanner, err := discovery.NewScanner(ctx, &cmd.Config)
+	if err != nil {
+		return fmt.Errorf("error creating new scanner: %w", err)
+	}
 	defer scanner.Cleanup()
-	return scanner.InitAndRun(context.Background())
+	return scanner.Scan(ctx)
 }

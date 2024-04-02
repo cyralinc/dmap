@@ -70,17 +70,22 @@ func NewSnowflakeRepository(cfg config.RepoConfig) (*SnowflakeRepository, error)
 	return &SnowflakeRepository{genericSqlRepo: sqlRepo}, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ListDatabases returns a list of the names of all databases on the server by
+// using a Snowflake-specific database query. It delegates the actual work to
+// GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *SnowflakeRepository) ListDatabases(ctx context.Context) ([]string, error) {
 	return r.genericSqlRepo.ListDatabasesWithQuery(ctx, SnowflakeDatabaseQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository. See
+// Repository.Introspect and GenericRepository.IntrospectWithQuery for more
+// details.
 func (r *SnowflakeRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.Introspect(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository. See
+// Repository.SampleTable and GenericRepository.SampleTable for more details.
 func (r *SnowflakeRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
@@ -89,25 +94,31 @@ func (r *SnowflakeRepository) SampleTable(
 	return r.genericSqlRepo.SampleTable(ctx, meta, params)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping delegates the ping to GenericRepository. See Repository.Ping and
+// GenericRepository.Ping for more details.
 func (r *SnowflakeRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.Ping(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *SnowflakeRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SnowflakeConfig holds Snowflake-specific configuration parameters.
 type SnowflakeConfig struct {
-	Account   string
-	Role      string
+	// Account is the Snowflake account name.
+	Account string
+	// Role is the Snowflake role name.
+	Role string
+	// Warehouse is the Snowflake warehouse name.
 	Warehouse string
 }
 
 // ParseSnowflakeConfig produces a config structure with Snowflake-specific
-// parameters found in the repo config.
+// parameters found in the repo config. The Snowflake account, role, and
+// warehouse are required in the advanced config.
 func ParseSnowflakeConfig(cfg config.RepoConfig) (*SnowflakeConfig, error) {
 	snowflakeCfg, err := config.FetchAdvancedConfigString(
 		cfg,

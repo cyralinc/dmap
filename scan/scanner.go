@@ -1,3 +1,5 @@
+// Package scan provides a Scanner interface which can be used for scanning
+// cloud environments and performing data repository discovery.
 package scan
 
 import (

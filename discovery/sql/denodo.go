@@ -69,17 +69,22 @@ func NewDenodoRepository(cfg config.RepoConfig) (*DenodoRepository, error) {
 	return &DenodoRepository{genericSqlRepo: sqlRepo}, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ListDatabases is left unimplemented for Denodo, because Denodo doesn't have
+// the concept of databases.
 func (r *DenodoRepository) ListDatabases(_ context.Context) ([]string, error) {
 	return nil, errors.New("ListDatabases is not implemented for Denodo repositories")
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository. See
+// Repository.Introspect and GenericRepository.IntrospectWithQuery for more
+// details.
 func (r *DenodoRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.IntrospectWithQuery(ctx, DenodoIntrospectQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository, using a Denodo-specific
+// table sample query. See Repository.SampleTable and
+// GenericRepository.SampleTableWithQuery for more details.
 func (r *DenodoRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
@@ -98,12 +103,14 @@ func (r *DenodoRepository) SampleTable(
 	return r.genericSqlRepo.SampleTableWithQuery(ctx, meta, query)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping delegates the ping to GenericRepository. See Repository.Ping and
+// GenericRepository.Ping for more details.
 func (r *DenodoRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.Ping(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *DenodoRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }

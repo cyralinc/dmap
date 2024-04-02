@@ -70,17 +70,23 @@ func NewPostgresRepository(cfg config.RepoConfig) (*PostgresRepository, error) {
 	return &PostgresRepository{genericSqlRepo: sqlRepo}, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ListDatabases returns a list of the names of all databases on the server by
+// using a Postgres-specific database query. It delegates the actual work to
+// GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *PostgresRepository) ListDatabases(ctx context.Context) ([]string, error) {
 	return r.genericSqlRepo.ListDatabasesWithQuery(ctx, PostgresDatabaseQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository. See
+// Repository.Introspect and GenericRepository.IntrospectWithQuery for more
+// details.
 func (r *PostgresRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.Introspect(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository, using a
+// Postgres-specific table sample query. See Repository.SampleTable and
+// GenericRepository.SampleTableWithQuery for more details.
 func (r *PostgresRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
@@ -93,30 +99,31 @@ func (r *PostgresRepository) SampleTable(
 	return r.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping delegates the ping to GenericRepository. See Repository.Ping and
+// GenericRepository.Ping for more details.
 func (r *PostgresRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.Ping(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *PostgresRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// PostgresConfig contains Postgres-specific configuration parameters.
 type PostgresConfig struct {
+	// ConnOptsStr is a string containing Postgres-specific connection options.
 	ConnOptsStr string
 }
 
-// ParsePostgresConfig produces a config structure with Postgres-specific
-// parameters found in the repo config.
+// ParsePostgresConfig parses the Postgres-specific configuration parameters
+// from the given config. The Postgres connection options are built from the
+// config and stored in the ConnOptsStr field of the returned PostgresConfig.
 func ParsePostgresConfig(cfg config.RepoConfig) (*PostgresConfig, error) {
 	connOptsStr, err := config.BuildConnOptsStr(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error building connection options string: %w", err)
 	}
-
-	return &PostgresConfig{
-		ConnOptsStr: connOptsStr,
-	}, nil
+	return &PostgresConfig{ConnOptsStr: connOptsStr}, nil
 }

@@ -9,12 +9,10 @@ import (
 type Repository interface {
 	// ListDatabases returns a list of the names of all databases on the server.
 	ListDatabases(ctx context.Context) ([]string, error)
-
 	// Introspect will read and analyze the basic properties of the repository
 	// and return as a Metadata instance. This includes all the repository's
 	// databases, schemas, tables, columns, and attributes.
 	Introspect(ctx context.Context) (*Metadata, error)
-
 	// SampleTable samples the table referenced by the TableMetadata meta
 	// parameter and returns the sample as a slice of Sample. The parameters for
 	// the sample, such as sample size, are passed via the params parameter (see
@@ -25,11 +23,9 @@ type Repository interface {
 	// row count less than the sample size. Prefer small sample sizes to limit
 	// impact on the database.
 	SampleTable(ctx context.Context, meta *TableMetadata, params SampleParameters) (Sample, error)
-
 	// Ping is meant to be used as a general purpose connectivity test. It
 	// should be invoked e.g. in the dry-run mode.
 	Ping(ctx context.Context) error
-
 	// Close is meant to be used as a general purpose cleanup. It should be
 	// invoked when the Repository is no longer used.
 	Close() error

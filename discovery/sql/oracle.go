@@ -84,20 +84,24 @@ func (r *OracleRepository) ListDatabases(_ context.Context) ([]string, error) {
 	return nil, errors.New("ListDatabases is not implemented for Oracle repos")
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository, using an
+// Oracle-specific introspection query. See Repository.Introspect and
+// GenericRepository.IntrospectWithQuery for more details.
 func (r *OracleRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.IntrospectWithQuery(ctx, OracleIntrospectQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository, using an Oracle-specific
+// table sample query. See Repository.SampleTable and
+// GenericRepository.SampleTableWithQuery for more details.
 func (r *OracleRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
 	params SampleParameters,
 ) (Sample, error) {
-	// Oracle uses double-quotes to quote identifiers
+	// Oracle uses double-quotes to quote identifiers.
 	attrStr := meta.QuotedAttributeNamesString("\"")
-	// Oracle uses :x for placeholders
+	// Oracle uses :x for placeholders.
 	query := fmt.Sprintf(
 		"SELECT %s FROM %s.%s OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY",
 		attrStr, meta.Schema, meta.Name,
@@ -106,26 +110,29 @@ func (r *OracleRepository) SampleTable(
 }
 
 // Ping verifies the connection to Oracle database used by this Oracle
-// Normally we would just delegate to the Ping method implemented by
-// genericOracle However, that implementation executes a
-// 'SELECT 1' query to test for connectivity, and Oracle being Oracle, does not
-// like this. So instead, we defer to the native Ping method implemented by the
-// Oracle DB driver.
+// Normally we would just delegate to GenericRepository.Ping, however, that
+// implementation executes a 'SELECT 1' query to test for connectivity, and
+// Oracle being Oracle does not like this. Instead, we defer to the native
+// Ping method implemented by the Oracle DB driver.
 func (r *OracleRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.GetDb().PingContext(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *OracleRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// OracleConfig is a struct to hold Oracle-specific configuration.
 type OracleConfig struct {
+	// ServiceName is the Oracle service name.
 	ServiceName string
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ParseOracleConfig parses the Oracle-specific configuration from the
+// given config. The Oracle configuration is expected to be in the
+// config's "advanced config" property.
 func ParseOracleConfig(cfg config.RepoConfig) (*OracleConfig, error) {
 	oracleCfg, err := config.FetchAdvancedConfigString(
 		cfg,

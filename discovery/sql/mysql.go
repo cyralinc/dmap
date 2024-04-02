@@ -61,35 +61,44 @@ func NewMySqlRepository(cfg config.RepoConfig) (*MySqlRepository, error) {
 	return &MySqlRepository{genericSqlRepo: sqlRepo}, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ListDatabases returns a list of the names of all databases on the server by
+// using a MySQL-specific database query. It delegates the actual work to
+// GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *MySqlRepository) ListDatabases(ctx context.Context) ([]string, error) {
 	return r.genericSqlRepo.ListDatabasesWithQuery(ctx, MySqlDatabaseQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository. See
+// Repository.Introspect and GenericRepository.IntrospectWithQuery for more
+// details.
 func (r *MySqlRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.Introspect(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository, using a MySQL-specific
+// table sample query. See Repository.SampleTable and
+// GenericRepository.SampleTableWithQuery for more details.
 func (r *MySqlRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
 	params SampleParameters,
 ) (Sample, error) {
-	// MySQL uses backticks to quote identifiers
+	// MySQL uses backticks to quote identifiers.
 	attrStr := meta.QuotedAttributeNamesString("`")
-	// The generic select/limit/offset query and ? placeholders work fine with MySQL
+	// The generic select/limit/offset query and ? placeholders work fine with
+	// MySQL.
 	query := fmt.Sprintf(GenericSampleQueryTemplate, attrStr, meta.Schema, meta.Name)
 	return r.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping delegates the ping to GenericRepository. See Repository.Ping and
+// GenericRepository.Ping for more details.
 func (r *MySqlRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.Ping(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *MySqlRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }

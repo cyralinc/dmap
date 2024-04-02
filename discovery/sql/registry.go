@@ -9,11 +9,19 @@ import (
 )
 
 var (
-	// TODO: godoc -ccampo 2024-04-02
+	// DefaultRegistry is the default, global repository registry used by the
+	// package of which a number of convenience functions in this package act
+	// on. All currently out-of-the-box repository types are registered to this
+	// registry by this package's init function. Users who want to use custom
+	// Repository implementations, or just avoid global state altogether, should
+	// use their own instance of Registry, instead of using DefaultRegistry and
+	// the corresponding convenience functions.
 	DefaultRegistry = NewRegistry()
 )
 
-// TODO: godoc -ccampo 2024-04-02
+// Registry is a repository registry that maps repository types to their
+// respective constructor functions. It is used to create new repository
+// instances based on the repository type.
 type Registry struct {
 	constructors map[string]RepoConstructor
 }
@@ -22,16 +30,14 @@ type Registry struct {
 // implementations should use for their constructor functions.
 type RepoConstructor func(ctx context.Context, cfg config.RepoConfig) (Repository, error)
 
-// TODO: godoc -ccampo 2024-04-02
+// NewRegistry creates a new Registry instance.
 func NewRegistry() *Registry {
 	return &Registry{constructors: make(map[string]RepoConstructor)}
 }
 
 // Register makes a repository available by the provided repository type. If
 // Register is called twice with the same repoType, or if constructor is nil, it
-// returns an error. Note that Register is not thread-safe. It is
-// expected to be called from either a package's init function, or from the
-// program's main function.
+// returns an error. Note that Register is not thread-safe.
 func (r *Registry) Register(repoType string, constructor RepoConstructor) error {
 	if constructor == nil {
 		return fmt.Errorf("attempt to register nil constructor for repoType %s", repoType)
@@ -54,8 +60,10 @@ func (r *Registry) MustRegister(repoType string, constructor RepoConstructor) {
 }
 
 // NewRepository is a factory method to return a concrete Repository
-// implementation based on the specified type, e.g. MySQL, PostgreSQL, MSSQL,
-// etc.
+// implementation based on the specified type, e.g. MySQL, Postgres, SQL Server,
+// etc., which must be registered with the registry. If the repository type is
+// not registered, an error is returned. A new instance of the repository is
+// returned each time this method is called.
 func (r *Registry) NewRepository(ctx context.Context, cfg config.RepoConfig) (Repository, error) {
 	constructor, ok := r.constructors[cfg.Type]
 	if !ok {
@@ -86,7 +94,8 @@ func NewRepository(ctx context.Context, cfg config.RepoConfig) (Repository, erro
 	return DefaultRegistry.NewRepository(ctx, cfg)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// init registers all out-of-the-box repository types and their respective
+// constructors with the DefaultRegistry.
 func init() {
 	MustRegister(
 		RepoTypeDenodo,

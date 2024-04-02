@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -36,9 +37,14 @@ const (
 // subset of ANSI SQL compatible databases. Many Repository implementations may
 // partially or fully delegate to this implementation. In that respect, it acts
 // somewhat as a base implementation which can be used by SQL-compatible
-// repositories. Note however that GenericRepository is not an implementation of
-// the Repository interface, and is meant to be used as a building block for
-// other Repository implementations.
+// repositories. Note that while GenericRepository is an implementation of
+// the Repository interface, GenericRepository is meant to be used as a building
+// block for other Repository implementations, rather than as a standalone
+// implementation. Specifically, the Repository.ListDatabases method is left
+// un-implemented, since there is no standard way to list databases across
+// different SQL database platforms. It does however provide the
+// ListDatabasesWithQuery method, which dependent implementations can use to
+// provide a custom query to list databases.
 type GenericRepository struct {
 	repoName     string
 	repoType     string
@@ -47,6 +53,8 @@ type GenericRepository struct {
 	includePaths []glob.Glob
 	excludePaths []glob.Glob
 }
+
+var _ Repository = (*GenericRepository)(nil)
 
 // NewGenericRepository is a constructor for the GenericRepository type. It
 // opens a database handle for a given repoType and returns a pointer to a new
@@ -68,7 +76,7 @@ func NewGenericRepository(
 	*GenericRepository,
 	error,
 ) {
-	db, err := getDbHandle(repoType, connStr, maxOpenConns)
+	db, err := newDbHandle(repoType, connStr, maxOpenConns)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving DB handle for repo type %s: %w", repoType, err)
 	}
@@ -91,6 +99,13 @@ func NewGenericRepositoryFromDB(repoName, repoType, database string, db *sql.DB)
 		database: database,
 		db:       db,
 	}
+}
+
+// ListDatabases is left unimplemented for GenericRepository, because there is
+// no standard way to list databases across different SQL database platforms.
+// See ListDatabasesWithQuery for a way to list databases using a custom query.
+func (r *GenericRepository) ListDatabases(_ context.Context) ([]string, error) {
+	return nil, errors.New("ListDatabases is not implemented")
 }
 
 // ListDatabasesWithQuery returns a list of the names of all databases on the
@@ -159,7 +174,10 @@ func (r *GenericRepository) IntrospectWithQuery(
 	return repoMeta, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable samples the table referenced by the TableMetadata meta parameter
+// by issuing a standard, ANSI-compatible SELECT query to the database. All
+// attributes of the table are selected, and are quoted using double quotes. See
+// Repository.SampleTable for more details.
 func (r *GenericRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
@@ -213,7 +231,8 @@ func (r *GenericRepository) SampleTableWithQuery(
 	return sample, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping verifies the connection to the database used by this repository by
+// executing a simple query. If the query fails, an error is returned.
 func (r *GenericRepository) Ping(ctx context.Context) error {
 	log.Tracef("Query: %s", GenericPingQuery)
 	rows, err := r.db.QueryContext(ctx, GenericPingQuery)
@@ -229,12 +248,15 @@ func (r *GenericRepository) GetDb() *sql.DB {
 	return r.db
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close closes the database connection used by the repository.
 func (r *GenericRepository) Close() error {
 	return r.db.Close()
 }
 
-func getDbHandle(repoType, connStr string, maxOpenConns uint) (*sql.DB, error) {
+// newDbHandle opens a new database sql.DB handle for the given repoType and
+// connection string. The maxOpenConns parameter specifies the maximum number of
+// open connections to the database.
+func newDbHandle(repoType, connStr string, maxOpenConns uint) (*sql.DB, error) {
 	db, err := sql.Open(repoType, connStr)
 	if err != nil {
 		return nil, err
@@ -328,6 +350,9 @@ func getCurrentRowAsMap(rows *sql.Rows) (map[string]any, error) {
 	return row, nil
 }
 
+// matchPathPatterns checks if the given database, schema, and table match any
+// of the given glob patterns. It returns true if the database, schema, and
+// table match any of the patterns, and false otherwise.
 func matchPathPatterns(database, schema, table string, patterns []glob.Glob) bool {
 	for _, pattern := range patterns {
 		if pattern.Match(fmt.Sprintf("%s.%s.%s", database, schema, table)) {

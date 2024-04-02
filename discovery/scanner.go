@@ -15,7 +15,8 @@ import (
 
 // Scanner is a data discovery scanner that scans a data repository for
 // sensitive data. It also classifies the data and publishes the results to
-// the configured external sources.
+// the configured external sources. It currently only supports SQL-based
+// repositories.
 type Scanner struct {
 	config     *config.Config
 	repository sql.Repository

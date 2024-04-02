@@ -59,18 +59,24 @@ func NewRedshiftRepository(cfg config.RepoConfig) (*RedshiftRepository, error) {
 	return &RedshiftRepository{genericSqlRepo: sqlRepo}, nil
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// ListDatabases returns a list of the names of all databases on the server by
+// using a Redshift-specific database query. It delegates the actual work to
+// GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *RedshiftRepository) ListDatabases(ctx context.Context) ([]string, error) {
 	// Redshift and Postgres use the same query to list the server databases.
 	return r.genericSqlRepo.ListDatabasesWithQuery(ctx, PostgresDatabaseQuery)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Introspect delegates introspection to GenericRepository. See
+// Repository.Introspect and GenericRepository.IntrospectWithQuery for more
+// details.
 func (r *RedshiftRepository) Introspect(ctx context.Context) (*Metadata, error) {
 	return r.genericSqlRepo.Introspect(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// SampleTable delegates sampling to GenericRepository, using a
+// Redshift-specific table sample query. See Repository.SampleTable and
+// GenericRepository.SampleTableWithQuery for more details.
 func (r *RedshiftRepository) SampleTable(
 	ctx context.Context,
 	meta *TableMetadata,
@@ -83,12 +89,14 @@ func (r *RedshiftRepository) SampleTable(
 	return r.genericSqlRepo.SampleTableWithQuery(ctx, meta, query, params.SampleSize, params.Offset)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Ping delegates the ping to GenericRepository. See Repository.Ping and
+// GenericRepository.Ping for more details.
 func (r *RedshiftRepository) Ping(ctx context.Context) error {
 	return r.genericSqlRepo.Ping(ctx)
 }
 
-// TODO: godoc -ccampo 2024-04-02
+// Close delegates the close to GenericRepository. See Repository.Close and
+// GenericRepository.Close for more details.
 func (r *RedshiftRepository) Close() error {
 	return r.genericSqlRepo.Close()
 }

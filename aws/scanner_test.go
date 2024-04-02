@@ -159,19 +159,19 @@ func (s *AWSScannerTestSuite) TestScan() {
 		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
 			return &awsClient{
 				config: awsConfig,
-				rds: &mock.MockRDSClient{
+				rds: &mock.RDSClient{
 					DBClusters:  s.dummyRDSClusters,
 					DBInstances: s.dummyRDSInstances,
 				},
-				redshift: &mock.MockRedshiftClient{
+				redshift: &mock.RedshiftClient{
 					Clusters: s.dummyRedshiftClusters,
 				},
-				dynamodb: &mock.MockDynamoDBClient{
+				dynamodb: &mock.DynamoDBClient{
 					TableNames: s.dummyDynamoDBTableNames,
 					Table:      s.dummyDynamoDBTable,
 					Tags:       s.dummyDynamoDBTags,
 				},
-				s3: &mock.MockS3Client{
+				s3: &mock.S3Client{
 					Buckets: s.dummyS3Buckets,
 					Tags:    s.dummyS3Tags,
 				},
@@ -181,7 +181,7 @@ func (s *AWSScannerTestSuite) TestScan() {
 	ctx := context.Background()
 	results, err := awsScanner.Scan(ctx)
 
-	expectedResults := &scan.ScanResults{
+	expectedResults := &scan.EnvironmentScanResults{
 		Repositories: map[string]scan.Repository{
 			*s.dummyRDSClusters[0].DBClusterArn: {
 				Id:         *s.dummyRDSClusters[0].DBClusterArn,
@@ -330,23 +330,23 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
 			return &awsClient{
 				config: awsConfig,
-				rds: &mock.MockRDSClient{
+				rds: &mock.RDSClient{
 					Errors: map[string]error{
 						"DescribeDBClusters":  dummyError,
 						"DescribeDBInstances": dummyError,
 					},
 				},
-				redshift: &mock.MockRedshiftClient{
+				redshift: &mock.RedshiftClient{
 					Errors: map[string]error{
 						"DescribeClusters": dummyError,
 					},
 				},
-				dynamodb: &mock.MockDynamoDBClient{
+				dynamodb: &mock.DynamoDBClient{
 					Errors: map[string]error{
 						"ListTables": dummyError,
 					},
 				},
-				s3: &mock.MockS3Client{
+				s3: &mock.S3Client{
 					Errors: map[string]error{
 						"ListBuckets":      dummyError,
 						"GetBucketTagging": dummyError,
@@ -359,7 +359,7 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 	ctx := context.Background()
 	results, err := awsScanner.Scan(ctx)
 
-	expectedResults := &scan.ScanResults{
+	expectedResults := &scan.EnvironmentScanResults{
 		Repositories: nil,
 	}
 

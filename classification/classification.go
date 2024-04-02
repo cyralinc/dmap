@@ -8,10 +8,7 @@ package classification
 
 import (
 	"context"
-	"fmt"
 	"maps"
-
-	"github.com/cyralinc/dmap/discovery/repository"
 )
 
 // Classifier is an interface that represents a data classifier. A classifier
@@ -56,41 +53,4 @@ func (c Result) Merge(other Result) {
 		}
 		maps.Copy(c[attr], labelSet)
 	}
-}
-
-// ClassifySamples uses the provided classifiers to classify the sample data
-// passed via the "samples" parameter. It is mostly a helper function which
-// loops through each repository.Sample, retrieves the attribute names and
-// values of that sample, passes them to Classifier.Classify, and then
-// aggregates the results. Please see the documentation for Classifier and its
-// Classify method for more details. The returned slice represents all the
-// unique classification results for a given sample set.
-func ClassifySamples(
-	ctx context.Context,
-	samples []sql.Sample,
-	classifier Classifier,
-) ([]ClassifiedTable, error) {
-	tables := make([]ClassifiedTable, 0, len(samples))
-	for _, sample := range samples {
-		// Classify each sampled row and combine the results.
-		result := make(Result)
-		for _, sampleResult := range sample.Results {
-			res, err := classifier.Classify(ctx, sampleResult)
-			if err != nil {
-				return nil, fmt.Errorf("error classifying sample: %w", err)
-			}
-			result.Merge(res)
-		}
-		if len(result) > 0 {
-			table := ClassifiedTable{
-				Repo:            sample.Metadata.Repo,
-				Database:        sample.Metadata.Database,
-				Schema:          sample.Metadata.Schema,
-				Table:           sample.Metadata.Table,
-				Classifications: result,
-			}
-			tables = append(tables, table)
-		}
-	}
-	return tables, nil
 }

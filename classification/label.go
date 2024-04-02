@@ -67,7 +67,7 @@ func GetEmbeddedLabels() (LabelSet, error) {
 		return nil, fmt.Errorf("error unmarshalling labels.yaml: %w", err)
 	}
 	for name, lbl := range labels.Labels {
-		fname := "rego/" + strings.ReplaceAll(strings.ToLower(name), " ", "_") + ".rego"
+		fname := "labels/" + strings.ReplaceAll(strings.ToLower(name), " ", "_") + ".rego"
 		b, err := regoFs.ReadFile(fname)
 		if err != nil {
 			return nil, fmt.Errorf("error reading rego file %s: %w", fname, err)

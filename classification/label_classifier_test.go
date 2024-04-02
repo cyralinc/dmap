@@ -145,7 +145,7 @@ func newTestLabelClassifier(t *testing.T, lblNames ...string) *LabelClassifier {
 }
 
 func newTestLabel(t *testing.T, lblName string) Label {
-	fname := "rego/" + strings.ReplaceAll(strings.ToLower(lblName), " ", "_") + ".rego"
+	fname := "labels/" + strings.ReplaceAll(strings.ToLower(lblName), " ", "_") + ".rego"
 	fin, err := regoFs.ReadFile(fname)
 	require.NoError(t, err)
 	classifierCode := string(fin)

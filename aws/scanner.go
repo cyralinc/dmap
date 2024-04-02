@@ -14,7 +14,7 @@ import (
 	"github.com/cyralinc/dmap/scan"
 )
 
-// AWSScanner is an implementation of the Scanner interface for the AWS cloud
+// AWSScanner is an implementation of the EnvironmentScanner interface for the AWS cloud
 // provider. It supports scanning data repositories from multiple AWS regions,
 // including RDS clusters and instances, Redshift clusters and DynamoDB tables.
 type AWSScanner struct {
@@ -23,8 +23,8 @@ type AWSScanner struct {
 	awsClientConstructor awsClientConstructor
 }
 
-// AWSScanner implements scan.Scanner
-var _ scan.Scanner = (*AWSScanner)(nil)
+// AWSScanner implements scan.EnvironmentScanner
+var _ scan.EnvironmentScanner = (*AWSScanner)(nil)
 
 // NewAWSScanner creates a new instance of AWSScanner based on the ScannerConfig.
 // If AssumeRoleConfig is specified, the AWSScanner will assume this IAM Role
@@ -57,7 +57,7 @@ func NewAWSScanner(
 // Scan performs a scan across all the AWS regions configured and return a scan
 // results, containing a list of data repositories that includes: RDS clusters
 // and instances, Redshift clusters and DynamoDB tables.
-func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
+func (s *AWSScanner) Scan(ctx context.Context) (*scan.EnvironmentScanResults, error) {
 	responseChan := make(chan scanResponse)
 	var wg sync.WaitGroup
 	wg.Add(len(s.scannerConfig.Regions))
@@ -100,18 +100,18 @@ func (s *AWSScanner) Scan(ctx context.Context) (*scan.ScanResults, error) {
 		select {
 		case <-ctx.Done():
 			scanErrors = append(scanErrors, ctx.Err())
-			return &scan.ScanResults{
+			return &scan.EnvironmentScanResults{
 				Repositories: repositories,
-			}, &scan.ScanError{Errs: scanErrors}
+			}, &scan.EnvironmentScanError{Errs: scanErrors}
 
 		case response, ok := <-responseChan:
 			if !ok {
 				// Channel closed, all scans finished.
 				var scanErr error
 				if len(scanErrors) > 0 {
-					scanErr = &scan.ScanError{Errs: scanErrors}
+					scanErr = &scan.EnvironmentScanError{Errs: scanErrors}
 				}
-				return &scan.ScanResults{
+				return &scan.EnvironmentScanResults{
 					Repositories: repositories,
 				}, scanErr
 

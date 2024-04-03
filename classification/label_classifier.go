@@ -11,37 +11,41 @@ import (
 // LabelClassifier is a Classifier implementation that uses a set of labels and
 // their classification rules to classify data.
 type LabelClassifier struct {
-	labels LabelSet
+	queries map[string]*rego.Rego
 }
 
 // LabelClassifier implements Classifier
 var _ Classifier = (*LabelClassifier)(nil)
 
-// NewLabelClassifier creates a new LabelClassifier with the provided labels and
-// classification rules.
+// NewLabelClassifier creates a new LabelClassifier with the provided labels.
+//
 func NewLabelClassifier(labels ...Label) (*LabelClassifier, error) {
 	if len(labels) == 0 {
 		return nil, fmt.Errorf("labels cannot be empty")
 	}
-	l := make(LabelSet, len(labels))
+	queries := make(map[string]*rego.Rego, len(labels))
 	for _, lbl := range labels {
-		l[lbl.Name] = lbl
+		queries[lbl.Name] = rego.New(
+			// We only care about the 'output' variable.
+			rego.Query(lbl.ClassificationRule.Package.Path.String() + ".output"),
+			rego.ParsedModule(lbl.ClassificationRule),
+		)
 	}
-	return &LabelClassifier{labels: l}, nil
+	return &LabelClassifier{queries: queries}, nil
 }
 
 // Classify performs the classification of the provided attributes using the
-// classifier's labels and classification rules. It returns a Result, which is
-// a map of attribute names to the set of labels that the attribute was
-// classified as.
+// classifier's labels and their corresponding classification rules. It returns
+// a Result, which is a map of attribute names to the set of labels that the
+// attribute was classified as.
 func (c *LabelClassifier) Classify(ctx context.Context, input map[string]any) (Result, error) {
-	result := make(Result, len(c.labels))
-	for _, lbl := range c.labels {
-		output, err := evalQuery(ctx, lbl.ClassificationRule, input)
+	result := make(Result, len(c.queries))
+	for lbl, query := range c.queries {
+		output, err := evalQuery(ctx, query, input)
 		if err != nil {
-			return nil, fmt.Errorf("error evaluating query for label %s: %w", lbl.Name, err)
+			return nil, fmt.Errorf("error evaluating query for label %s: %w", lbl, err)
 		}
-		log.Debugf("classification results for label %s: %v", lbl.Name, output)
+		log.Debugf("classification results for label %s: %v", lbl, output)
 		for attrName, classified := range output {
 			if classified {
 				attrLabels, ok := result[attrName]
@@ -49,21 +53,21 @@ func (c *LabelClassifier) Classify(ctx context.Context, input map[string]any) (R
 					attrLabels = make(LabelSet)
 					result[attrName] = attrLabels
 				}
-				attrLabels[lbl.Name] = lbl
+				// Add the label to the set of labels for the attribute.
+				attrLabels[lbl] = struct{}{}
 			}
 		}
 	}
 	return result, nil
 }
 
-// evalQuery evaluates the provided prepared Rego query with the given
-// attributes as input, and returns the classification results. The output is a
+// evalQuery evaluates the provided Rego query with the given attributes as input, and returns the classification results. The output is a
 // map of attribute names to boolean values, where the boolean indicates whether
 // the attribute is classified as belonging to the label.
-func evalQuery(ctx context.Context, rule *rego.Rego, input map[string]any) (map[string]bool, error) {
-	q, err := rule.PrepareForEval(ctx)
+func evalQuery(ctx context.Context, query *rego.Rego, input map[string]any) (map[string]bool, error) {
+	q, err := query.PrepareForEval(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error preparing rule for evaluation: %w", err)
+		return nil, fmt.Errorf("error preparing query for evaluation: %w", err)
 	}
 	// Evaluate the prepared Rego query. This performs the actual classification
 	// logic.

@@ -1,4 +1,3 @@
-// Package scan provides a EnvironmentScanner interface which can be used for scanning
-// cloud environments and performing data repository discovery.
-// TODO: fix doc -ccampo 2024-04-02
+// Package scan provides and API to scan cloud environments for data
+// repositories and an API to scan those repositories for sensitive data.
 package scan

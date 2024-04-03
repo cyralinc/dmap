@@ -181,7 +181,7 @@ func (s *AWSScannerTestSuite) TestScan() {
 	ctx := context.Background()
 	results, err := awsScanner.Scan(ctx)
 
-	expectedResults := &scan.EnvironmentScanResults{
+	expectedResults := &scan.ScanResults{
 		Repositories: map[string]scan.Repository{
 			*s.dummyRDSClusters[0].DBClusterArn: {
 				Id:         *s.dummyRDSClusters[0].DBClusterArn,
@@ -359,7 +359,7 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 	ctx := context.Background()
 	results, err := awsScanner.Scan(ctx)
 
-	expectedResults := &scan.EnvironmentScanResults{
+	expectedResults := &scan.ScanResults{
 		Repositories: nil,
 	}
 

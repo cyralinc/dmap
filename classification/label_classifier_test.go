@@ -9,7 +9,9 @@ import (
 )
 
 func TestNewLabelClassifier_Success(t *testing.T) {
-	classifier, err := NewLabelClassifier(Label{Name: "foo"})
+	lbl, err := NewLabel("foo", "test label", "package foo\noutput = true")
+	require.NoError(t, err)
+	classifier, err := NewLabelClassifier(lbl)
 	require.NoError(t, err)
 	require.NotNil(t, classifier)
 }
@@ -40,7 +42,7 @@ func TestLabelClassifier_Classify(t *testing.T) {
 			input:      map[string]any{"age": "42"},
 			want: Result{
 				"age": {
-					"AGE": Label{Name: "AGE"},
+					"AGE": {},
 				},
 			},
 		},
@@ -53,7 +55,7 @@ func TestLabelClassifier_Classify(t *testing.T) {
 			},
 			want: Result{
 				"age": {
-					"AGE": Label{Name: "AGE"},
+					"AGE": {},
 				},
 			},
 		},
@@ -63,7 +65,7 @@ func TestLabelClassifier_Classify(t *testing.T) {
 			input:      map[string]any{"age": "42"},
 			want: Result{
 				"age": {
-					"AGE": Label{Name: "AGE"},
+					"AGE": {},
 				},
 			},
 		},
@@ -76,10 +78,10 @@ func TestLabelClassifier_Classify(t *testing.T) {
 			},
 			want: Result{
 				"age": {
-					"AGE": Label{Name: "AGE"},
+					"AGE": {},
 				},
 				"ccn": {
-					"CCN": Label{Name: "CCN"},
+					"CCN": {},
 				},
 			},
 		},
@@ -92,11 +94,11 @@ func TestLabelClassifier_Classify(t *testing.T) {
 			},
 			want: Result{
 				"age": {
-					"AGE": Label{Name: "AGE"},
-					"CVV": Label{Name: "CVV"},
+					"AGE": {},
+					"CVV": {},
 				},
 				"cvv": {
-					"CVV": Label{Name: "CVV"},
+					"CVV": {},
 				},
 			},
 		},
@@ -127,10 +129,9 @@ func requireResultEqual(t *testing.T, want, got Result) {
 
 func requireLabelSetEqual(t *testing.T, want, got LabelSet) {
 	require.Len(t, got, len(want))
-	for k, v := range want {
-		gotLbl, ok := got[k]
+	for k := range want {
+		_, ok := got[k]
 		require.Truef(t, ok, "missing label %s", k)
-		require.Equal(t, v.Name, gotLbl.Name)
 	}
 }
 
@@ -149,7 +150,7 @@ func newTestLabel(t *testing.T, lblName string) Label {
 	fin, err := regoFs.ReadFile(fname)
 	require.NoError(t, err)
 	classifierCode := string(fin)
-	lbl, err := NewLabel(lblName, "test label", classifierCode, nil)
+	lbl, err := NewLabel(lblName, "test label", classifierCode)
 	require.NoError(t, err)
 	return lbl
 }

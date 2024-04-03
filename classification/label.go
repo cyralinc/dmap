@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/open-policy-agent/opa/ast"
-	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,18 +20,23 @@ var (
 
 // Label represents a data classification label.
 type Label struct {
-	Name               string     `yaml:"name" json:"name"`
-	Description        string     `yaml:"description" json:"description"`
-	Tags               []string   `yaml:"tags" json:"tags"`
-	ClassificationRule *rego.Rego `yaml:"-" json:"-"`
+	// Name is the name of the label.
+	Name string `yaml:"name" json:"name"`
+	// Description is a brief description of the label.
+	Description string `yaml:"description" json:"description"`
+	// Tags are a list of arbitrary tags associated with the label.
+	Tags []string `yaml:"tags" json:"tags"`
+	// ClassificationRule is the compiled Rego classification rule used to
+	// classify data.
+	ClassificationRule *ast.Module `yaml:"-" json:"-"`
 }
 
 // NewLabel creates a new Label with the given name, description, classification
 // rule, and tags. The classification rule is expected to be the raw Rego code
 // that will be used to classify data. If the classification rule is invalid, an
 // error is returned.
-func NewLabel(name, description, classificationRule string, tags []string) (Label, error) {
-	rule, err := ruleRego(classificationRule)
+func NewLabel(name, description, classificationRule string, tags ...string) (Label, error) {
+	rule, err := parseRego(classificationRule)
 	if err != nil {
 		return Label{}, fmt.Errorf("error preparing classification rule for label %s: %w", name, err)
 	}
@@ -43,25 +48,12 @@ func NewLabel(name, description, classificationRule string, tags []string) (Labe
 	}, nil
 }
 
-// LabelSet is a set of unique labels. The key is the label name and the value
-// is the label itself.
-type LabelSet map[string]Label
-
-// ToSlice returns the labels in the set as a slice.
-func (s LabelSet) ToSlice() []Label {
-	var labels []Label
-	for _, label := range s {
-		labels = append(labels, label)
-	}
-	return labels
-}
-
 // GetEmbeddedLabels returns the predefined embedded labels and their
 // classification rules. The labels are read from the embedded labels.yaml file
 // and the classification rules are read from the embedded Rego files.
-func GetEmbeddedLabels() (LabelSet, error) {
+func GetEmbeddedLabels() ([]Label, error) {
 	labels := struct {
-		Labels LabelSet `yaml:"labels"`
+		Labels map[string]Label `yaml:"labels"`
 	}{}
 	if err := yaml.Unmarshal([]byte(labelsYaml), &labels); err != nil {
 		return nil, fmt.Errorf("error unmarshalling labels.yaml: %w", err)
@@ -72,7 +64,7 @@ func GetEmbeddedLabels() (LabelSet, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error reading rego file %s: %w", fname, err)
 		}
-		rule, err := ruleRego(string(b))
+		rule, err := parseRego(string(b))
 		if err != nil {
 			return nil, fmt.Errorf("error preparing classification rule for label %s: %w", lbl.Name, err)
 		}
@@ -80,16 +72,14 @@ func GetEmbeddedLabels() (LabelSet, error) {
 		lbl.ClassificationRule = rule
 		labels.Labels[name] = lbl
 	}
-	return labels.Labels, nil
+	return maps.Values(labels.Labels), nil
 }
 
-func ruleRego(code string) (*rego.Rego, error) {
+func parseRego(code string) (*ast.Module, error) {
 	log.Tracef("classifier module code: '%s'", code)
-	moduleName := "classifier"
-	compiledRego, err := ast.CompileModules(map[string]string{moduleName: code})
+	module, err := ast.ParseModule("classifier", code)
 	if err != nil {
-		return nil, fmt.Errorf("error compiling rego code: %w", err)
+		return nil, fmt.Errorf("error parsing rego code: %w", err)
 	}
-	regoQuery := compiledRego.Modules[moduleName].Package.Path.String() + ".output"
-	return rego.New(rego.Query(regoQuery), rego.Compiler(compiledRego)), nil
+	return module, nil
 }

@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-const configConnOpts = "connection-string-args"
-
 // RepoConfig is the necessary configuration to connect to a data sql.
 type RepoConfig struct {
 	// Host is the hostname of the database.
@@ -24,61 +22,17 @@ type RepoConfig struct {
 	Advanced map[string]any
 }
 
-// FetchAdvancedConfigString fetches a map in the repo advanced configuration,
-// for a given repo and set of parameters. Example:
-//
-// repo-advanced:
-//
-//	snowflake:
-//	  account: exampleAccount
-//	  role: exampleRole
-//	  warehouse: exampleWarehouse
-//
-// Calling FetchAdvancedMapConfig(<the repo config above>, "snowflake",
-// []string{"account", "role", "warehouse"}) returns the map
-//
-// {"account": "exampleAccount", "role": "exampleRole", "warehouse":
-// "exampleWarehouse"}
-//
-// The suffix 'String' means that the values of the map are strings. This gives
-// room to have FetchAdvancedConfigList or FetchAdvancedConfigMap, for example,
-// without name conflicts.
-func FetchAdvancedConfigString(
-	cfg RepoConfig,
-	repo string,
-	parameters []string,
-) (map[string]string, error) {
-	advancedCfg, err := getAdvancedConfig(cfg, repo)
-	if err != nil {
-		return nil, err
-	}
-	repoSpecificMap := make(map[string]string)
-	for _, key := range parameters {
-		var valInterface any
-		var val string
-		var ok bool
-		if valInterface, ok = advancedCfg[key]; !ok {
-			return nil, fmt.Errorf("unable to find '%s' in %s advanced config", key, repo)
-		}
-		if val, ok = valInterface.(string); !ok {
-			return nil, fmt.Errorf("'%s' in %s config must be a string", key, repo)
-		}
-		repoSpecificMap[key] = val
-	}
-	return repoSpecificMap, nil
-}
-
-// getAdvancedConfig gets the Advanced field in a repo config and converts it to
-// a map[string]any. In every step, it checks for error and generates
-// nice messages.
-func getAdvancedConfig(cfg RepoConfig, repo string) (map[string]any, error) {
-	advancedCfgInterface, ok := cfg.Advanced[repo]
+// keyAsString returns the value of the given key as a string from the given
+// configuration map. It returns an error if the key does not exist or if the
+// value is not a string.
+func keyAsString(cfg map[string]any, key string) (string, error) {
+	val, ok := cfg[key]
 	if !ok {
-		return nil, fmt.Errorf("unable to find '%s' in advanced config", repo)
+		return "", fmt.Errorf("%s key does not exist", key)
 	}
-	advancedCfg, ok := advancedCfgInterface.(map[string]any)
+	valStr, ok := val.(string)
 	if !ok {
-		return nil, fmt.Errorf("'%s' in advanced config is not a map", repo)
+		return "", fmt.Errorf("%s key must be a string", key)
 	}
-	return advancedCfg, nil
+	return valStr, nil
 }

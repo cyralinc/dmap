@@ -64,7 +64,7 @@ func main() {
 	ctx := kong.Parse(
 		&cli,
 		kong.Name("dmap"),
-		kong.Description("Assess your data security posture in AWS."),
+		kong.Description("Discover your data repositories and classify their sensitive data."),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(
 			kong.HelpOptions{

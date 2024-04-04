@@ -29,4 +29,4 @@ jobs:
           version: latest
 
       - name: Run OPA Tests
-        run: opa test classification/labels/*.rego -v
+        run: opa test ./classification/labels/*.rego -v

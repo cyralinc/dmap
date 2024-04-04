@@ -10,7 +10,7 @@ import (
 
 const (
 	RepoTypeMysql      = "mysql"
-	MySqlDatabaseQuery = `
+	mySqlDatabaseQuery = `
 SELECT 
     schema_name
 FROM 
@@ -55,7 +55,7 @@ func NewMySqlRepository(cfg RepoConfig) (*MySqlRepository, error) {
 // using a MySQL-specific database query. It delegates the actual work to
 // GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *MySqlRepository) ListDatabases(ctx context.Context) ([]string, error) {
-	return r.generic.ListDatabasesWithQuery(ctx, MySqlDatabaseQuery)
+	return r.generic.ListDatabasesWithQuery(ctx, mySqlDatabaseQuery)
 }
 
 // Introspect delegates introspection to GenericRepository. See
@@ -76,7 +76,7 @@ func (r *MySqlRepository) SampleTable(
 	attrStr := params.Metadata.QuotedAttributeNamesString("`")
 	// The generic select/limit/offset query and ? placeholders work fine with
 	// MySQL.
-	query := fmt.Sprintf(GenericSampleQueryTemplate, attrStr, params.Metadata.Schema, params.Metadata.Name)
+	query := fmt.Sprintf(genericSampleQueryTemplate, attrStr, params.Metadata.Schema, params.Metadata.Name)
 	return r.generic.SampleTableWithQuery(ctx, query, params)
 }
 

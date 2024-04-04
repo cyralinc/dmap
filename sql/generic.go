@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	GenericIntrospectQuery = "SELECT " +
+	genericIntrospectQuery = "SELECT " +
 		"table_schema, " +
 		"table_name, " +
 		"column_name, " +
@@ -29,8 +29,8 @@ const (
 		"'performance_schema', " +
 		"'pg_catalog'" +
 		")"
-	GenericPingQuery           = "SELECT 1"
-	GenericSampleQueryTemplate = "SELECT %s FROM %s.%s LIMIT ? OFFSET ?"
+	genericPingQuery           = "SELECT 1"
+	genericSampleQueryTemplate = "SELECT %s FROM %s.%s LIMIT ? OFFSET ?"
 )
 
 // GenericRepository implements generic SQL functionalities that work for a
@@ -128,7 +128,7 @@ func (r *GenericRepository) Introspect(
 	ctx context.Context,
 	params IntrospectParameters,
 ) (*Metadata, error) {
-	return r.IntrospectWithQuery(ctx, GenericIntrospectQuery, params)
+	return r.IntrospectWithQuery(ctx, genericIntrospectQuery, params)
 }
 
 // IntrospectWithQuery executes a query against the information_schema table in
@@ -165,7 +165,7 @@ func (r *GenericRepository) SampleTable(
 ) (Sample, error) {
 	// ANSI SQL uses double-quotes to quote identifiers
 	attrStr := params.Metadata.QuotedAttributeNamesString("\"")
-	query := fmt.Sprintf(GenericSampleQueryTemplate, attrStr, params.Metadata.Schema, params.Metadata.Name)
+	query := fmt.Sprintf(genericSampleQueryTemplate, attrStr, params.Metadata.Schema, params.Metadata.Name)
 	return r.SampleTableWithQuery(ctx, query, params)
 }
 
@@ -213,8 +213,8 @@ func (r *GenericRepository) SampleTableWithQuery(
 // Ping verifies the connection to the database used by this repository by
 // executing a simple query. If the query fails, an error is returned.
 func (r *GenericRepository) Ping(ctx context.Context) error {
-	log.Tracef("Query: %s", GenericPingQuery)
-	rows, err := r.db.QueryContext(ctx, GenericPingQuery)
+	log.Tracef("Query: %s", genericPingQuery)
+	rows, err := r.db.QueryContext(ctx, genericPingQuery)
 	if err != nil {
 		return err
 	}

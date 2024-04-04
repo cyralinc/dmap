@@ -87,7 +87,6 @@ func newMetadataFromQueryResult(
 		if err := rows.Scan(&attr.Schema, &attr.Table, &attr.Name, &attr.DataType); err != nil {
 			return nil, fmt.Errorf("error scanning metadata query result row: %w", err)
 		}
-
 		// Skip tables that match excludePaths or does not match includePaths.
 		log.Tracef("checking if %s.%s.%s matches excludePaths %s\n", db, attr.Schema, attr.Table, excludePaths)
 		if matchPathPatterns(db, attr.Schema, attr.Table, excludePaths) {
@@ -97,7 +96,6 @@ func newMetadataFromQueryResult(
 		if !matchPathPatterns(db, attr.Schema, attr.Table, includePaths) {
 			continue
 		}
-
 		// SchemaMetadata exists - add a table if necessary.
 		if schema, ok := repo.Schemas[attr.Schema]; ok {
 			// TableMetadata exists - just append the attribute.
@@ -116,7 +114,6 @@ func newMetadataFromQueryResult(
 			repo.Schemas[attr.Schema] = schema
 		}
 	}
-
 	// Something broke while iterating the row set.
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating metadata query rows: %w", err)

@@ -11,11 +11,11 @@ import (
 
 const (
 	RepoTypeDenodo = "denodo"
-	// DenodoIntrospectQuery is the SQL query used to introspect the database. For
-	// Denodo, the object hierarchy is (database > views). When querying
-	// Denodo, the database corresponds to a schema, and the view corresponds
-	// to a table (see SampleTable).
-	DenodoIntrospectQuery = "SELECT " +
+	// denodoIntrospectQuery is the SQL query used to introspect the database.
+	// For Denodo, the object hierarchy is (database > views). When querying
+	// Denodo, the database corresponds to a schema, and the view corresponds to
+	// a table.
+	denodoIntrospectQuery = "SELECT " +
 		"database_name AS table_schema, " +
 		"view_name AS table_name, " +
 		"column_name, " +
@@ -36,21 +36,16 @@ var _ Repository = (*DenodoRepository)(nil)
 
 // NewDenodoRepository is the constructor for sql.
 func NewDenodoRepository(cfg RepoConfig) (*DenodoRepository, error) {
-	pgCfg, err := parsePostgresConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse postgres config: %w", err)
-	}
 	if cfg.Database == "" {
 		return nil, errors.New("database name is mandatory for Denodo repositories")
 	}
 	connStr := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%d/%s%s",
+		"postgresql://%s:%s@%s:%d/%s",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
 		cfg.Database,
-		pgCfg.ConnOptsStr,
 	)
 	generic, err := NewGenericRepository(RepoTypePostgres, cfg.Database, connStr, cfg.MaxOpenConns)
 	if err != nil {
@@ -69,7 +64,7 @@ func (r *DenodoRepository) ListDatabases(_ context.Context) ([]string, error) {
 // Repository.Introspect and GenericRepository.IntrospectWithQuery for more
 // details.
 func (r *DenodoRepository) Introspect(ctx context.Context, params IntrospectParameters) (*Metadata, error) {
-	return r.generic.IntrospectWithQuery(ctx, DenodoIntrospectQuery, params)
+	return r.generic.IntrospectWithQuery(ctx, denodoIntrospectQuery, params)
 }
 
 // SampleTable delegates sampling to GenericRepository, using a Denodo-specific

@@ -10,7 +10,7 @@ import (
 
 const (
 	RepoTypeSnowflake      = "snowflake"
-	SnowflakeDatabaseQuery = `
+	snowflakeDatabaseQuery = `
 SELECT 
     DATABASE_NAME 
 FROM 
@@ -35,7 +35,7 @@ var _ Repository = (*SnowflakeRepository)(nil)
 
 // NewSnowflakeRepository creates a new SnowflakeRepository.
 func NewSnowflakeRepository(cfg RepoConfig) (*SnowflakeRepository, error) {
-	snowflakeCfg, err := ParseSnowflakeConfig(cfg)
+	snowflakeCfg, err := NewSnowflakeConfigFromMap(cfg.Advanced)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing snowflake config: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewSnowflakeRepository(cfg RepoConfig) (*SnowflakeRepository, error) {
 // using a Snowflake-specific database query. It delegates the actual work to
 // GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *SnowflakeRepository) ListDatabases(ctx context.Context) ([]string, error) {
-	return r.generic.ListDatabasesWithQuery(ctx, SnowflakeDatabaseQuery)
+	return r.generic.ListDatabasesWithQuery(ctx, snowflakeDatabaseQuery)
 }
 
 // Introspect delegates introspection to GenericRepository. See
@@ -105,21 +105,25 @@ type SnowflakeConfig struct {
 	Warehouse string
 }
 
-// ParseSnowflakeConfig produces a config structure with Snowflake-specific
-// parameters found in the repo  The Snowflake account, role, and
-// warehouse are required in the advanced
-func ParseSnowflakeConfig(cfg RepoConfig) (*SnowflakeConfig, error) {
-	snowflakeCfg, err := FetchAdvancedConfigString(
-		cfg,
-		RepoTypeSnowflake,
-		[]string{configAccount, configRole, configWarehouse},
-	)
+// NewSnowflakeConfigFromMap creates a new SnowflakeConfig from the given map.
+// This is useful for parsing the Snowflake-specific configuration from the
+// RepoConfig.Advanced map, for example.
+func NewSnowflakeConfigFromMap(cfg map[string]any) (SnowflakeConfig, error) {
+	acct, err := keyAsString(cfg, configAccount)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching advanced config string: %w", err)
+		return SnowflakeConfig{}, err
 	}
-	return &SnowflakeConfig{
-		Account:   snowflakeCfg[configAccount],
-		Role:      snowflakeCfg[configRole],
-		Warehouse: snowflakeCfg[configWarehouse],
+	role, err := keyAsString(cfg, configRole)
+	if err != nil {
+		return SnowflakeConfig{}, err
+	}
+	warehouse, err := keyAsString(cfg, configWarehouse)
+	if err != nil {
+		return SnowflakeConfig{}, err
+	}
+	return SnowflakeConfig{
+		Account:   acct,
+		Role:      role,
+		Warehouse: warehouse,
 	}, nil
 }

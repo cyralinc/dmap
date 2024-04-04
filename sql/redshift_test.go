@@ -13,7 +13,7 @@ func TestRedshiftRepository_ListDatabases(t *testing.T) {
 	ctx, db, mock, r := initRedshiftRepoTest(t)
 	defer func() { _ = db.Close() }()
 	dbRows := sqlmock.NewRows([]string{"name"}).AddRow("db1").AddRow("db2")
-	mock.ExpectQuery(PostgresDatabaseQuery).WillReturnRows(dbRows)
+	mock.ExpectQuery(postgresDatabaseQuery).WillReturnRows(dbRows)
 	dbs, err := r.ListDatabases(ctx)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []string{"db1", "db2"}, dbs)

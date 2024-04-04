@@ -27,7 +27,7 @@ type RepoScanResults struct {
 	Classifications []Classification       `json:"classifications"`
 }
 
-// TODO: godoc -ccampo 2024-04-03
+// Classification represents the classification of a data repository attribute.
 type Classification struct {
 	// AttributePath is the full path of the data repository attribute
 	// (e.g. the column). Each element corresponds to a component, in increasing

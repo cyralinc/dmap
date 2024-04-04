@@ -18,7 +18,6 @@ type LabelClassifier struct {
 var _ Classifier = (*LabelClassifier)(nil)
 
 // NewLabelClassifier creates a new LabelClassifier with the provided labels.
-//
 func NewLabelClassifier(labels ...Label) (*LabelClassifier, error) {
 	if len(labels) == 0 {
 		return nil, fmt.Errorf("labels cannot be empty")
@@ -27,7 +26,7 @@ func NewLabelClassifier(labels ...Label) (*LabelClassifier, error) {
 	for _, lbl := range labels {
 		queries[lbl.Name] = rego.New(
 			// We only care about the 'output' variable.
-			rego.Query(lbl.ClassificationRule.Package.Path.String() + ".output"),
+			rego.Query(lbl.ClassificationRule.Package.Path.String()+".output"),
 			rego.ParsedModule(lbl.ClassificationRule),
 		)
 	}

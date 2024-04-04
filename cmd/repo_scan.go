@@ -53,6 +53,7 @@ func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 
 func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	ctx := context.Background()
+	// Configure and instantiate the scanner.
 	cfg := sql.ScannerConfig{
 		RepoType: cmd.Type,
 		RepoConfig: sql.RepoConfig{
@@ -73,15 +74,17 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	if err != nil {
 		return fmt.Errorf("error creating new scanner: %w", err)
 	}
+	// Scan the repository.
 	results, err := scanner.Scan(ctx)
 	if err != nil {
 		return fmt.Errorf("error scanning repository: %w", err)
 	}
+	// Print the results to stdout.
 	jsonResults, err := json.MarshalIndent(results, "", "    ")
 	if err != nil {
 		return fmt.Errorf("error marshalling results: %w", err)
 	}
 	fmt.Println(string(jsonResults))
-	// TODO: publish results to API -ccampo 2024-04-03
+	// TODO: publish results to the API -ccampo 2024-04-03
 	return nil
 }

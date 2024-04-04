@@ -11,7 +11,7 @@ import (
 
 const (
 	RepoTypeOracle        = "oracle"
-	OracleIntrospectQuery = `
+	oracleIntrospectQuery = `
 WITH users AS (
   SELECT
     username
@@ -48,7 +48,7 @@ var _ Repository = (*OracleRepository)(nil)
 
 // NewOracleRepository creates a new Oracle repository.
 func NewOracleRepository(cfg RepoConfig) (*OracleRepository, error) {
-	oracleCfg, err := ParseOracleConfig(cfg)
+	oracleCfg, err := NewOracleConfigFromMap(cfg.Advanced)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse oracle config: %w", err)
 	}
@@ -78,7 +78,7 @@ func (r *OracleRepository) ListDatabases(_ context.Context) ([]string, error) {
 // Oracle-specific introspection query. See Repository.Introspect and
 // GenericRepository.IntrospectWithQuery for more details.
 func (r *OracleRepository) Introspect(ctx context.Context, params IntrospectParameters) (*Metadata, error) {
-	return r.generic.IntrospectWithQuery(ctx, OracleIntrospectQuery, params)
+	return r.generic.IntrospectWithQuery(ctx, oracleIntrospectQuery, params)
 }
 
 // SampleTable delegates sampling to GenericRepository, using an Oracle-specific
@@ -119,17 +119,13 @@ type OracleConfig struct {
 	ServiceName string
 }
 
-// ParseOracleConfig parses the Oracle-specific configuration from the
-// given  The Oracle configuration is expected to be in the
-// config's "advanced config" property.
-func ParseOracleConfig(cfg RepoConfig) (*OracleConfig, error) {
-	oracleCfg, err := FetchAdvancedConfigString(
-		cfg,
-		RepoTypeOracle,
-		[]string{configServiceName},
-	)
+// NewOracleConfigFromMap creates a new OracleConfig from the given map. This is
+// useful for parsing the Oracle-specific configuration from the
+// RepoConfig.Advanced map, for example.
+func NewOracleConfigFromMap(cfg map[string]any) (OracleConfig, error) {
+	serviceName, err := keyAsString(cfg, configServiceName)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching advanced oracle config: %w", err)
+		return OracleConfig{}, err
 	}
-	return &OracleConfig{ServiceName: oracleCfg[configServiceName]}, nil
+	return OracleConfig{ServiceName: serviceName}, nil
 }

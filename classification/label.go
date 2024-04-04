@@ -50,7 +50,10 @@ func NewLabel(name, description, classificationRule string, tags ...string) (Lab
 
 // GetEmbeddedLabels returns the predefined embedded labels and their
 // classification rules. The labels are read from the embedded labels.yaml file
-// and the classification rules are read from the embedded Rego files.
+// and the classification rules are read from the embedded Rego files. If there
+// is an error unmarshalling the labels file, it is returned. If there is an
+// error reading or parsing a classification rule for a label, a warning is
+// logged and that label is skipped.
 func GetEmbeddedLabels() ([]Label, error) {
 	labels := struct {
 		Labels map[string]Label `yaml:"labels"`
@@ -62,11 +65,13 @@ func GetEmbeddedLabels() ([]Label, error) {
 		fname := "labels/" + strings.ReplaceAll(strings.ToLower(name), " ", "_") + ".rego"
 		b, err := regoFs.ReadFile(fname)
 		if err != nil {
-			return nil, fmt.Errorf("error reading rego file %s: %w", fname, err)
+			log.WithError(err).Warnf("error reading rego file %s", fname)
+			continue
 		}
 		rule, err := parseRego(string(b))
 		if err != nil {
-			return nil, fmt.Errorf("error preparing classification rule for label %s: %w", lbl.Name, err)
+			log.WithError(err).Warnf("error parsing classification rule for label %s", lbl.Name)
+			continue
 		}
 		lbl.Name = name
 		lbl.ClassificationRule = rule

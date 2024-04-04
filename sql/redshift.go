@@ -24,23 +24,18 @@ var _ Repository = (*RedshiftRepository)(nil)
 
 // NewRedshiftRepository creates a new RedshiftRepository.
 func NewRedshiftRepository(cfg RepoConfig) (*RedshiftRepository, error) {
-	pgCfg, err := parsePostgresConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse postgres config: %w", err)
-	}
 	database := cfg.Database
 	// Connect to the default database, if unspecified.
 	if database == "" {
 		database = "dev"
 	}
 	connStr := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%d/%s%s",
+		"postgresql://%s:%s@%s:%d/%s",
 		cfg.User,
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
 		database,
-		pgCfg.ConnOptsStr,
 	)
 	generic, err := NewGenericRepository(RepoTypePostgres, cfg.Database, connStr, cfg.MaxOpenConns)
 	if err != nil {
@@ -54,7 +49,7 @@ func NewRedshiftRepository(cfg RepoConfig) (*RedshiftRepository, error) {
 // GenericRepository.ListDatabasesWithQuery - see that method for more details.
 func (r *RedshiftRepository) ListDatabases(ctx context.Context) ([]string, error) {
 	// Redshift and Postgres use the same query to list the server databases.
-	return r.generic.ListDatabasesWithQuery(ctx, PostgresDatabaseQuery)
+	return r.generic.ListDatabasesWithQuery(ctx, postgresDatabaseQuery)
 }
 
 // Introspect delegates introspection to GenericRepository. See

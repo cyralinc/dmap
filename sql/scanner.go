@@ -31,7 +31,7 @@ type ScannerConfig struct {
 // the configured external sources. It currently only supports SQL-based
 // repositories.
 type Scanner struct {
-	Config     ScannerConfig
+	config     ScannerConfig
 	labels     []classification.Label
 	classifier classification.Classifier
 }
@@ -40,7 +40,7 @@ type Scanner struct {
 var _ scan.RepoScanner = (*Scanner)(nil)
 
 // NewScanner creates a new Scanner instance with the provided configuration.
-func NewScanner(cfg ScannerConfig) (*Scanner, error) {
+func NewScanner(ctx context.Context, cfg ScannerConfig) (*Scanner, error) {
 	if cfg.RepoType == "" {
 		return nil, fmt.Errorf("repository type not specified")
 	}
@@ -52,11 +52,11 @@ func NewScanner(cfg ScannerConfig) (*Scanner, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting embedded labels: %w", err)
 	}
-	c, err := classification.NewLabelClassifier(lbls...)
+	c, err := classification.NewLabelClassifier(ctx, lbls...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new label classifier: %w", err)
 	}
-	return &Scanner{Config: cfg, labels: lbls, classifier: c}, nil
+	return &Scanner{config: cfg, labels: lbls, classifier: c}, nil
 }
 
 // Scan performs the data repository scan. It introspects and samples the
@@ -73,8 +73,8 @@ func (s *Scanner) Scan(ctx context.Context) (*scan.RepoScanResults, error) {
 	// database. Note that Oracle doesn't really have the concept of
 	// "databases", therefore a single repository instance will always scan the
 	// entire database.
-	if s.Config.RepoConfig.Database != "" || s.Config.RepoType == RepoTypeOracle {
-		samples, err = s.sampleDb(ctx, s.Config.RepoConfig.Database)
+	if s.config.RepoConfig.Database != "" || s.config.RepoType == RepoTypeOracle {
+		samples, err = s.sampleDb(ctx, s.config.RepoConfig.Database)
 	} else {
 		// The name of the database to connect to has been left unspecified by
 		// the user, so we try to connect and sample all databases instead.
@@ -115,7 +115,7 @@ func (s *Scanner) Scan(ctx context.Context) (*scan.RepoScanResults, error) {
 // returned as a slice of Sample.
 func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 	// Create the repository instance that will be used to sample the database.
-	cfg := s.Config.RepoConfig
+	cfg := s.config.RepoConfig
 	cfg.Database = db
 	repo, err := s.newRepository(ctx, cfg)
 	if err != nil {
@@ -124,8 +124,8 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 	defer func() { _ = repo.Close() }()
 	// Introspect the repository to get the metadata.
 	introspectParams := IntrospectParameters{
-		IncludePaths: s.Config.IncludePaths,
-		ExcludePaths: s.Config.ExcludePaths,
+		IncludePaths: s.config.IncludePaths,
+		ExcludePaths: s.config.ExcludePaths,
 	}
 	meta, err := repo.Introspect(ctx, introspectParams)
 	if err != nil {
@@ -145,8 +145,8 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 			go func(meta *TableMetadata) {
 				params := SampleParameters{
 					Metadata:   meta,
-					SampleSize: s.Config.SampleSize,
-					Offset:     s.Config.Offset,
+					SampleSize: s.config.SampleSize,
+					Offset:     s.config.Offset,
 				}
 				sample, err := repo.SampleTable(ctx, params)
 				select {
@@ -195,7 +195,7 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 func (s *Scanner) sampleAllDbs(ctx context.Context) ([]Sample, error) {
 	// Create a repository instance that will be used to list all the databases
 	// on the server.
-	repo, err := s.newRepository(ctx, s.Config.RepoConfig)
+	repo, err := s.newRepository(ctx, s.config.RepoConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error creating repository instance: %w", err)
 	}
@@ -224,8 +224,8 @@ func (s *Scanner) sampleAllDbs(ctx context.Context) ([]Sample, error) {
 	// specified total number of connections, since we end up creating multiple
 	// database handles (one per database).
 	var sema *semaphore.Weighted
-	if s.Config.RepoConfig.MaxOpenConns > 0 {
-		sema = semaphore.NewWeighted(int64(s.Config.RepoConfig.MaxOpenConns))
+	if s.config.RepoConfig.MaxOpenConns > 0 {
+		sema = semaphore.NewWeighted(int64(s.config.RepoConfig.MaxOpenConns))
 	}
 	for _, db := range dbs {
 		go func(db string, cfg RepoConfig) {
@@ -248,7 +248,7 @@ func (s *Scanner) sampleAllDbs(ctx context.Context) ([]Sample, error) {
 				return
 			case out <- samplesAndErr{samples: samples, err: err}:
 			}
-		}(db, s.Config.RepoConfig)
+		}(db, s.config.RepoConfig)
 	}
 
 	// Start a goroutine to close the 'out' channel once all the goroutines we
@@ -281,8 +281,11 @@ func (s *Scanner) sampleAllDbs(ctx context.Context) ([]Sample, error) {
 // of samples. Each sampled row is individually classified. The returned slice
 // of classifications represents all the UNIQUE classifications for a given
 // sample set.
-func (s *Scanner) classifySamples(ctx context.Context, samples []Sample) ([]scan.Classification, error) {
-	uniqueClassifications := make(map[string]scan.Classification)
+func (s *Scanner) classifySamples(
+	ctx context.Context,
+	samples []Sample,
+) ([]classification.Classification, error) {
+	uniqueClassifications := make(map[string]classification.Classification)
 	for _, sample := range samples {
 		// Classify each sampled row and combine the classifications.
 		for _, sampleResult := range sample.Results {
@@ -298,7 +301,7 @@ func (s *Scanner) classifySamples(ctx context.Context, samples []Sample) ([]scan
 				key := strings.Join(attrPath, "\u2063")
 				result, ok := uniqueClassifications[key]
 				if !ok {
-					uniqueClassifications[key] = scan.Classification{
+					uniqueClassifications[key] = classification.Classification{
 						AttributePath: attrPath,
 						Labels:        labels,
 					}
@@ -310,7 +313,7 @@ func (s *Scanner) classifySamples(ctx context.Context, samples []Sample) ([]scan
 		}
 	}
 	// Convert the map of unique classifications to a slice.
-	classifications := make([]scan.Classification, 0, len(uniqueClassifications))
+	classifications := make([]classification.Classification, 0, len(uniqueClassifications))
 	for _, result := range uniqueClassifications {
 		classifications = append(classifications, result)
 	}
@@ -321,12 +324,12 @@ func (s *Scanner) classifySamples(ctx context.Context, samples []Sample) ([]scan
 // configuration. It delegates the actual creation of the repository to the
 // scanner's Registry.NewRepository method, using the scanner's RepoType and
 // the provided configuration. You may wonder why we just don't use the
-// scanner's repo configuration directly (i.e. s.Config.RepoConfig) instead of
+// scanner's repo configuration directly (i.e. s.config.RepoConfig) instead of
 // passing it as an argument. The reason is that we want to be able to create
 // a new repository instance with a different configuration than the one
 // specified in the scanner's configuration. This is useful when we want to
 // sample a specific database, for example, and we want to create a new
 // repository instance with the database name set to that specific database.
 func (s *Scanner) newRepository(ctx context.Context, cfg RepoConfig) (Repository, error) {
-	return s.Config.Registry.NewRepository(ctx, s.Config.RepoType, cfg)
+	return s.config.Registry.NewRepository(ctx, s.config.RepoType, cfg)
 }

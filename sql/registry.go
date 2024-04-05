@@ -19,7 +19,7 @@ var (
 
 // Registry is a repository registry that maps repository types to their
 // respective constructor functions. It is used to create new repository
-// instances based on the repository type.
+// instances based on the repository type. It is not thread-safe.
 type Registry struct {
 	constructors map[string]RepoConstructor
 }
@@ -58,7 +58,8 @@ func (r *Registry) MustRegister(repoType string, constructor RepoConstructor) {
 }
 
 // Unregister removes a repository type from the registry. If the repository
-// type is not registered, this method is a no-op.
+// type is not registered, this method is a no-op. Note that Unregister is not
+// thread-safe.
 func (r *Registry) Unregister(repoType string) {
 	delete(r.constructors, repoType)
 }
@@ -67,7 +68,8 @@ func (r *Registry) Unregister(repoType string) {
 // implementation based on the specified type, e.g. MySQL, Postgres, SQL Server,
 // etc., which must be registered with the registry. If the repository type is
 // not registered, an error is returned. A new instance of the repository is
-// returned each time this method is called.
+// returned each time this method is called. Note that NewRepository is not
+// thread-safe.
 func (r *Registry) NewRepository(ctx context.Context, repoType string, cfg RepoConfig) (Repository, error) {
 	constructor, ok := r.constructors[repoType]
 	if !ok {

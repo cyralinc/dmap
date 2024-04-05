@@ -10,8 +10,8 @@ import (
 
 // Scanner provides an API to scan cloud environments. It should be
 // implemented for a specific cloud provider (e.g. AWS, GCP, etc.). It defines
-// the Scan method responsible for scanning the existing data repositories of
-// the corresponding cloud provider environment.
+// the Scan method responsible for discovering the existing data repositories in
+// a cloud environment.
 type Scanner interface {
 	Scan(ctx context.Context) (*ScanResults, error)
 }
@@ -23,18 +23,8 @@ type RepoScanner interface {
 
 // RepoScanResults is the result of a repository scan.
 type RepoScanResults struct {
-	Labels          []classification.Label `json:"labels"`
-	Classifications []Classification       `json:"classifications"`
-}
-
-// Classification represents the classification of a data repository attribute.
-type Classification struct {
-	// AttributePath is the full path of the data repository attribute
-	// (e.g. the column). Each element corresponds to a component, in increasing
-	// order of granularity (e.g. [database, schema, table, column]).
-	AttributePath []string `json:"attributePath"`
-	// Labels is the set of labels that the attribute was classified as.
-	Labels classification.LabelSet `json:"labels"`
+	Labels          []classification.Label          `json:"labels"`
+	Classifications []classification.Classification `json:"classifications"`
 }
 
 // RepoType defines the AWS data repository types supported (e.g. RDS, Redshift,

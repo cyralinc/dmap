@@ -112,7 +112,7 @@ func TestScanner_sampleDb_Success(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -249,7 +249,7 @@ func TestScanner_sampleDb_PartialError(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -277,7 +277,7 @@ func TestScanner_sampleAllDbs_Error(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -336,7 +336,7 @@ func TestScanner_sampleAllDbs_Successful_TwoDatabases(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -367,7 +367,7 @@ func TestScanner_sampleAllDbs_IntrospectError(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -419,7 +419,7 @@ func TestScanner_sampleAllDbs_SampleError(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,
@@ -480,7 +480,7 @@ func TestScanner_sampleAllDbs_TwoDatabases_OneSampleError(t *testing.T) {
 		},
 	)
 	s := Scanner{
-		Config: ScannerConfig{
+		config: ScannerConfig{
 			RepoType:   repoType,
 			RepoConfig: RepoConfig{},
 			Registry:   reg,

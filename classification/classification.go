@@ -35,3 +35,13 @@ type LabelSet map[string]struct{}
 func (l LabelSet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(maps.Keys(l))
 }
+
+// Classification represents the classification of a data repository attribute.
+type Classification struct {
+	// AttributePath is the full path of the data repository attribute
+	// (e.g. the column). Each element corresponds to a component, in increasing
+	// order of granularity (e.g. [database, schema, table, column]).
+	AttributePath []string `json:"attributePath"`
+	// Labels is the set of labels that the attribute was classified as.
+	Labels LabelSet `json:"labels"`
+}

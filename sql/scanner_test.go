@@ -9,8 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cyralinc/dmap/classification"
-	"github.com/cyralinc/dmap/scan"
 )
+
+// TODO: tests for Scanner.Scan -ccampo 2024-04-05
 
 func TestScanner_sampleDb_Success(t *testing.T) {
 	ctx := context.Background()
@@ -529,7 +530,7 @@ func TestScanner_classifySamples_SingleSample(t *testing.T) {
 		nil,
 	)
 
-	expected := []scan.Classification{
+	expected := []classification.Classification{
 		{
 			AttributePath: append(sample.TablePath, "age"),
 			Labels:        lblSet("AGE", "CVV"),
@@ -605,7 +606,7 @@ func TestScanner_classifySamples_MultipleSamples(t *testing.T) {
 		nil,
 	)
 
-	expected := []scan.Classification{
+	expected := []classification.Classification{
 		{
 			AttributePath: append(samples[0].TablePath, "age"),
 			Labels:        lblSet("AGE", "CVV"),

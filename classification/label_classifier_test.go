@@ -11,7 +11,7 @@ import (
 func TestNewLabelClassifier_Success(t *testing.T) {
 	lbl, err := NewLabel("foo", "test label", "package foo\noutput = true")
 	require.NoError(t, err)
-	classifier, err := NewLabelClassifier(lbl)
+	classifier, err := NewLabelClassifier(context.Background(), lbl)
 	require.NoError(t, err)
 	require.NotNil(t, classifier)
 }
@@ -140,14 +140,14 @@ func newTestLabelClassifier(t *testing.T, lblNames ...string) *LabelClassifier {
 	for i, lblName := range lblNames {
 		lbls[i] = newTestLabel(t, lblName)
 	}
-	classifier, err := NewLabelClassifier(lbls...)
+	classifier, err := NewLabelClassifier(context.Background(), lbls...)
 	require.NoError(t, err)
 	return classifier
 }
 
 func newTestLabel(t *testing.T, lblName string) Label {
 	fname := "labels/" + strings.ReplaceAll(strings.ToLower(lblName), " ", "_") + ".rego"
-	fin, err := regoFs.ReadFile(fname)
+	fin, err := predefinedLabelsFs.ReadFile(fname)
 	require.NoError(t, err)
 	classifierCode := string(fin)
 	lbl, err := NewLabel(lblName, "test label", classifierCode)

@@ -24,6 +24,7 @@ type ScannerConfig struct {
 	IncludePaths, ExcludePaths []glob.Glob
 	SampleSize                 uint
 	Offset                     uint
+	LabelsYamlFilename         string
 }
 
 // Scanner is a data discovery scanner that scans a data repository for
@@ -47,11 +48,33 @@ func NewScanner(ctx context.Context, cfg ScannerConfig) (*Scanner, error) {
 	if cfg.Registry == nil {
 		cfg.Registry = DefaultRegistry
 	}
-	// Create a new label classifier with the embedded labels.
-	lbls, err := classification.GetEmbeddedLabels()
-	if err != nil {
-		return nil, fmt.Errorf("error getting embedded labels: %w", err)
+	// Load the data labels - either from the predefined (embedded) labels or
+	// from a provided custom labels file.
+	var (
+		lbls []classification.Label
+		err  error
+	)
+	if cfg.LabelsYamlFilename == "" {
+		// Use the predefined labels if the user didn't specify a labels file.
+		lbls, err = classification.GetPredefinedLabels()
+	} else {
+		// Load the labels from the specified file.
+		lbls, err = classification.GetCustomLabels(cfg.LabelsYamlFilename)
 	}
+	if err != nil {
+		errMsg := fmt.Sprintf("error(s) loading data labels")
+		// This error means that some labels weren't loaded due to having
+		// invalid classification rules. We only log a warning in this case,
+		// since we still want to proceed with the labels that were
+		// successfully loaded.
+		var errs classification.InvalidLabelsError
+		if errors.As(err, &errs) {
+			log.WithError(errs).Warnf("%s: some labels were not loaded", errMsg)
+		} else {
+			return nil, fmt.Errorf("%s: %w", errMsg, err)
+		}
+	}
+	// Create a new label classifier with the embedded labels.
 	c, err := classification.NewLabelClassifier(ctx, lbls...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new label classifier: %w", err)
@@ -291,7 +314,13 @@ func (s *Scanner) classifySamples(
 		for _, sampleResult := range sample.Results {
 			res, err := s.classifier.Classify(ctx, sampleResult)
 			if err != nil {
-				return nil, fmt.Errorf("error classifying sample: %w", err)
+				// We received an error while classifying the sample. If we
+				// didn't get any results, return an error. Otherwise, log a
+				// warning and continue with the partial results.
+				if len(res) == 0 {
+					return nil, fmt.Errorf("error(s) classifying sample: %w", err)
+				}
+				log.WithError(err).Warn("error(s) classifying sample, continuing with partial results")
 			}
 			for attr, labels := range res {
 				attrPath := append(sample.TablePath, attr)

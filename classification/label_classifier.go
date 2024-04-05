@@ -2,6 +2,7 @@ package classification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/open-policy-agent/opa/rego"
@@ -45,12 +46,13 @@ func NewLabelClassifier(ctx context.Context, labels ...Label) (*LabelClassifier,
 // names to the set of labels that the attribute was classified as.
 func (c *LabelClassifier) Classify(ctx context.Context, input map[string]any) (Result, error) {
 	result := make(Result, len(c.queries))
+	var errs error
 	for lbl, query := range c.queries {
 		output, err := evalQuery(ctx, query, input)
 		if err != nil {
 			// A single error should not prevent the classification of other
-			// labels. Log the error and continue.
-			log.WithError(err).Errorf("error evaluating query for label %s", lbl)
+			// labels. Aggregate the error and continue.
+			errs = errors.Join(errs, fmt.Errorf("error evaluating query for label %s: %w", lbl, err))
 			continue
 		}
 		log.Debugf("classification results for label %s: %v", lbl, output)
@@ -67,7 +69,7 @@ func (c *LabelClassifier) Classify(ctx context.Context, input map[string]any) (R
 			}
 		}
 	}
-	return result, nil
+	return result, errs
 }
 
 // evalQuery evaluates the provided Rego query with the given attributes as input, and returns the classification results. The output is a

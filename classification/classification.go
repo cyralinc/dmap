@@ -9,8 +9,6 @@ package classification
 import (
 	"context"
 	"encoding/json"
-
-	"golang.org/x/exp/maps"
 )
 
 // Classifier is an interface that represents a data classifier. A classifier
@@ -29,11 +27,17 @@ type Classifier interface {
 // that attribute was classified as.
 type Result map[string]LabelSet
 
-// LabelSet is a set of unique labels.
+// LabelSet is a set of unique label names.
 type LabelSet map[string]struct{}
 
+// MarshalJSON marshals the LabelSet into a JSON array of strings, where each
+// string is the name of a label in the set.
 func (l LabelSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(maps.Keys(l))
+	keys := make([]string, 0, len(l))
+	for k := range l {
+		keys = append(keys, k)
+	}
+	return json.Marshal(keys)
 }
 
 // Classification represents the classification of a data repository attribute.

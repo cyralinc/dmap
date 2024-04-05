@@ -1,79 +1,97 @@
-# Contains all the predefined data labels by Cyral. To add a new predefined
-# label, define it in this file along with its classification rule Rego code in
-# a '<label>.rego' file. The Rego file name should match the lowercase label
-# name, with spaces replaced by underscores. For example, the Rego file for the
-# 'ADDRESS' label should be named 'address.rego'.
+# This file contains all the predefined data labels by Cyral. It also serves as
+# example of the file format users can use to define their own custom labels.
+# To add a new predefined label, define it in this file along with its
+# classification rule Rego code in a '<label>.rego' file.
 #
-# YAML structure:
+# File YAML structure:
 #
-# labels:               # The list of labels.
-#   FOO:                # The label name.
-#     description: bar  # The label description.
-#     tags:             # The label tags (list), e.g., PII, PCI, etc.
-#       - tag1
-#       - tag2
-labels:
-  ADDRESS:
-    description: Address
-    tags:
-      - PII
+# LABEL_NAME:
+#   description: Some description
+#   rule: label_name.rego
+#   tags:
+#     - tag1
+#     - tag2
+#
+# The classification rule Rego file name can be a relative path (to this file,
+# e.g. label_name.rego), or an absolute path (e.g. /path/to/label_name.rego).
+# Note that for predefined labels (like the ones defined by this specific
+# file!) the classification rule filename for a label MUST be a valid RELATIVE
+# path to the Rego file for the label, otherwise it will not be read correctly.
 
-  AGE:
-    description: Age
-    tags:
-      - PII
+ADDRESS:
+  description: Address
+  rule: address.rego
+  tags:
+    - PII
 
-  CCN:
-    description: Credit card number
-    tags:
-      - PCI
+AGE:
+  description: Age
+  rule: age.rego
+  tags:
+    - PII
 
-  CVV:
-    description: Credit card verification value (CVV)
-    tags:
-      - PCI
+CCN:
+  description: Credit card number
+  rule: ccn.rego
+  tags:
+    - PCI
 
-  DOB:
-    description: Date of birth
-    tags:
-      - PII
+CVV:
+  description: Credit card verification value (CVV)
+  rule: cvv.rego
+  tags:
+    - PCI
 
-  EMAIL:
-    description: Email address
-    tags:
-      - PII
+DOB:
+  description: Date of birth
+  rule: dob.rego
+  tags:
+    - PII
 
-  FIRST_NAME:
-    description: First name
-    tags:
-      - PII
+EMAIL:
+  description: Email address
+  rule: email.rego
+  tags:
+    - PII
 
-  FULL_NAME:
-    description: Full name
-    tags:
-      - PII
+FIRST_NAME:
+  description: First name
+  rule: first_name.rego
+  tags:
+    - PII
 
-  IP_ADDRESS:
-    description: IP address
-    tags:
-      - PII
+FULL_NAME:
+  description: Full name
+  rule: full_name.rego
+  tags:
+    - PII
 
-  LAST_NAME:
-    description: Last name
-    tags:
-      - PII
+IP_ADDRESS:
+  description: IP address
+  rule: ip_address.rego
+  tags:
+    - PII
 
-  PASSPORT:
-    description: Passport number
-    tags:
-      - PII
+LAST_NAME:
+  description: Last name
+  rule: last_name.rego
+  tags:
+    - PII
 
-  PHONE:
-    description: Phone number
-    tags:
-      - PII
+PASSPORT:
+  description: Passport number
+  rule: passport.rego
+  tags:
+    - PII
 
-  SSN:
-    description: Social security number
-    tags:
-      - PII
+PHONE:
+  description: Phone number
+  rule: phone.rego
+  tags:
+    - PII
+
+SSN:
+  description: Social security number
+  rule: ssn.rego
+  tags:
+    - PII

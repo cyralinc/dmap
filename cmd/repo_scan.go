@@ -14,19 +14,20 @@ import (
 )
 
 type RepoScanCmd struct {
-	Type         string         `help:"Type of repository to connect to (postgres|mysql|oracle|sqlserver|snowflake|redshift|denodo)." enum:"postgres,mysql,oracle,sqlserver,snowflake,redshift,denodo" required:""`
-	ExternalID   string         `help:"External ID of the repository." required:""`
-	Host         string         `help:"Hostname of the repository." required:""`
-	Port         uint16         `help:"Port of the repository." required:""`
-	User         string         `help:"Username to connect to the repository." required:""`
-	Password     string         `help:"Password to connect to the repository." required:""`
-	Database     string         `help:"Name of the database to connect to. If not specified, the default database is used (if possible)."`
-	Advanced     map[string]any `help:"Advanced configuration for the repository, semicolon separated (e.g. key1=value1;key2=value2). Please see the documentation for details on how to provide this argument for specific repository types."`
-	IncludePaths GlobFlag       `help:"List of glob patterns to include when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)." default:"*"`
-	ExcludePaths GlobFlag       `help:"List of glob patterns to exclude when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)." default:""`
-	MaxOpenConns uint           `help:"Maximum number of open connections to the database." default:"10"`
-	SampleSize   uint           `help:"Number of rows to sample from the repository (per table)." default:"5"`
-	Offset       uint           `help:"Offset to start sampling from." default:"0"`
+	Type          string         `help:"Type of repository to connect to (postgres|mysql|oracle|sqlserver|snowflake|redshift|denodo)." enum:"postgres,mysql,oracle,sqlserver,snowflake,redshift,denodo" required:""`
+	ExternalID    string         `help:"External ID of the repository." required:""`
+	Host          string         `help:"Hostname of the repository." required:""`
+	Port          uint16         `help:"Port of the repository." required:""`
+	User          string         `help:"Username to connect to the repository." required:""`
+	Password      string         `help:"Password to connect to the repository." required:""`
+	Database      string         `help:"Name of the database to connect to. If not specified, the default database is used (if possible)."`
+	Advanced      map[string]any `help:"Advanced configuration for the repository, semicolon separated (e.g. key1=value1;key2=value2). Please see the documentation for details on how to provide this argument for specific repository types."`
+	IncludePaths  GlobFlag       `help:"List of glob patterns to include when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)." default:"*"`
+	ExcludePaths  GlobFlag       `help:"List of glob patterns to exclude when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)."`
+	MaxOpenConns  uint           `help:"Maximum number of open connections to the database." default:"10"`
+	SampleSize    uint           `help:"Number of rows to sample from the repository (per table)." default:"5"`
+	Offset        uint           `help:"Offset to start sampling from." default:"0"`
+	LabelYamlFile string         `help:"Filename of the yaml file containing the custom set of data labels (e.g. /path/to/labels.yaml). If omitted, Dmap's predefined set of labels is used."`
 }
 
 // GlobFlag is a kong.MapperValue implementation that represents a glob pattern.
@@ -65,10 +66,11 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 			MaxOpenConns: cmd.MaxOpenConns,
 			Advanced:     cmd.Advanced,
 		},
-		IncludePaths: cmd.IncludePaths,
-		ExcludePaths: cmd.ExcludePaths,
-		SampleSize:   cmd.SampleSize,
-		Offset:       cmd.Offset,
+		IncludePaths:       cmd.IncludePaths,
+		ExcludePaths:       cmd.ExcludePaths,
+		SampleSize:         cmd.SampleSize,
+		Offset:             cmd.Offset,
+		LabelsYamlFilename: cmd.LabelYamlFile,
 	}
 	scanner, err := sql.NewScanner(ctx, cfg)
 	if err != nil {

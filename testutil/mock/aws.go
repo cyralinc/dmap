@@ -14,16 +14,16 @@ import (
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-type MockRDSClient struct {
+type RDSClient struct {
 	DBClusters  []rdsTypes.DBCluster
 	DBInstances []rdsTypes.DBInstance
 	Errors      map[string]error
 }
 
-func (m *MockRDSClient) DescribeDBClusters(
-	ctx context.Context,
+func (m *RDSClient) DescribeDBClusters(
+	_ context.Context,
 	params *rds.DescribeDBClustersInput,
-	optFns ...func(*rds.Options),
+	_ ...func(*rds.Options),
 ) (*rds.DescribeDBClustersOutput, error) {
 	if m.Errors["DescribeDBClusters"] != nil {
 		return nil, m.Errors["DescribeDBClusters"]
@@ -44,10 +44,10 @@ func (m *MockRDSClient) DescribeDBClusters(
 	}, nil
 }
 
-func (m *MockRDSClient) DescribeDBInstances(
-	ctx context.Context,
+func (m *RDSClient) DescribeDBInstances(
+	_ context.Context,
 	params *rds.DescribeDBInstancesInput,
-	optFns ...func(*rds.Options),
+	_ ...func(*rds.Options),
 ) (*rds.DescribeDBInstancesOutput, error) {
 	if m.Errors["DescribeDBInstances"] != nil {
 		return nil, m.Errors["DescribeDBInstances"]
@@ -68,16 +68,16 @@ func (m *MockRDSClient) DescribeDBInstances(
 	}, nil
 }
 
-type MockS3Client struct {
+type S3Client struct {
 	Buckets []s3Types.Bucket
 	Tags    []s3Types.Tag
 	Errors  map[string]error
 }
 
-func (m *MockS3Client) ListBuckets(
-	ctx context.Context,
-	params *s3.ListBucketsInput,
-	optFns ...func(*s3.Options),
+func (m *S3Client) ListBuckets(
+	_ context.Context,
+	_ *s3.ListBucketsInput,
+	_ ...func(*s3.Options),
 ) (*s3.ListBucketsOutput, error) {
 	if m.Errors["ListBuckets"] != nil {
 		return nil, m.Errors["ListBuckets"]
@@ -88,10 +88,10 @@ func (m *MockS3Client) ListBuckets(
 	}, nil
 }
 
-func (m *MockS3Client) GetBucketTagging(
-	ctx context.Context,
-	params *s3.GetBucketTaggingInput,
-	optFns ...func(*s3.Options),
+func (m *S3Client) GetBucketTagging(
+	_ context.Context,
+	_ *s3.GetBucketTaggingInput,
+	_ ...func(*s3.Options),
 ) (*s3.GetBucketTaggingOutput, error) {
 	if m.Errors["GetBucketTagging"] != nil {
 		return nil, m.Errors["GetBucketTagging"]
@@ -102,15 +102,15 @@ func (m *MockS3Client) GetBucketTagging(
 	}, nil
 }
 
-type MockRedshiftClient struct {
+type RedshiftClient struct {
 	Clusters []redshiftTypes.Cluster
 	Errors   map[string]error
 }
 
-func (m *MockRedshiftClient) DescribeClusters(
-	ctx context.Context,
+func (m *RedshiftClient) DescribeClusters(
+	_ context.Context,
 	params *redshift.DescribeClustersInput,
-	optFns ...func(*redshift.Options),
+	_ ...func(*redshift.Options),
 ) (*redshift.DescribeClustersOutput, error) {
 	if m.Errors["DescribeClusters"] != nil {
 		return nil, m.Errors["DescribeClusters"]
@@ -131,17 +131,17 @@ func (m *MockRedshiftClient) DescribeClusters(
 	}, nil
 }
 
-type MockDynamoDBClient struct {
+type DynamoDBClient struct {
 	TableNames []string
 	Table      map[string]*dynamodbTypes.TableDescription
 	Tags       []dynamodbTypes.Tag
 	Errors     map[string]error
 }
 
-func (m *MockDynamoDBClient) ListTables(
-	ctx context.Context,
+func (m *DynamoDBClient) ListTables(
+	_ context.Context,
 	params *dynamodb.ListTablesInput,
-	optFns ...func(*dynamodb.Options),
+	_ ...func(*dynamodb.Options),
 ) (*dynamodb.ListTablesOutput, error) {
 	if m.Errors["ListTables"] != nil {
 		return nil, m.Errors["ListTables"]
@@ -162,10 +162,10 @@ func (m *MockDynamoDBClient) ListTables(
 	}, nil
 }
 
-func (m *MockDynamoDBClient) DescribeTable(
-	ctx context.Context,
+func (m *DynamoDBClient) DescribeTable(
+	_ context.Context,
 	params *dynamodb.DescribeTableInput,
-	optFns ...func(*dynamodb.Options),
+	_ ...func(*dynamodb.Options),
 ) (*dynamodb.DescribeTableOutput, error) {
 	if m.Errors["DescribeTable"] != nil {
 		return nil, m.Errors["DescribeTable"]
@@ -175,10 +175,10 @@ func (m *MockDynamoDBClient) DescribeTable(
 	}, nil
 }
 
-func (m *MockDynamoDBClient) ListTagsOfResource(
-	ctx context.Context,
+func (m *DynamoDBClient) ListTagsOfResource(
+	_ context.Context,
 	params *dynamodb.ListTagsOfResourceInput,
-	optFns ...func(*dynamodb.Options),
+	_ ...func(*dynamodb.Options),
 ) (*dynamodb.ListTagsOfResourceOutput, error) {
 	if m.Errors["ListTagsOfResource"] != nil {
 		return nil, m.Errors["ListTagsOfResource"]

@@ -4,14 +4,27 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/cyralinc/dmap/classification"
 )
 
-// Scanner is an interface that should be implemented for a specific cloud
-// provider (e.g. AWS, GCP, etc). It defines the Scan method responsible for
-// scanning the existing data repositories of the corresponding cloud provider
-// environment.
+// Scanner provides an API to scan cloud environments. It should be
+// implemented for a specific cloud provider (e.g. AWS, GCP, etc.). It defines
+// the Scan method responsible for discovering the existing data repositories in
+// a cloud environment.
 type Scanner interface {
 	Scan(ctx context.Context) (*ScanResults, error)
+}
+
+// RepoScanner is a scanner that scans a data repository for sensitive data.
+type RepoScanner interface {
+	Scan(ctx context.Context) (*RepoScanResults, error)
+}
+
+// RepoScanResults is the result of a repository scan.
+type RepoScanResults struct {
+	Labels          []classification.Label          `json:"labels"`
+	Classifications []classification.Classification `json:"classifications"`
 }
 
 // RepoType defines the AWS data repository types supported (e.g. RDS, Redshift,
@@ -19,7 +32,6 @@ type Scanner interface {
 type RepoType string
 
 const (
-	// Repo types
 	RepoTypeRDS        RepoType = "TYPE_RDS"
 	RepoTypeRedshift   RepoType = "TYPE_REDSHIFT"
 	RepoTypeDynamoDB   RepoType = "TYPE_DYNAMODB"
@@ -50,6 +62,7 @@ type ScanError struct {
 	Errs []error
 }
 
+// Error returns a string representation of the error.
 func (e *ScanError) Error() string {
 	if e == nil {
 		return ""
@@ -57,6 +70,7 @@ func (e *ScanError) Error() string {
 	return errors.Join(e.Errs...).Error()
 }
 
+// Unwrap returns the list of errors that occurred during the scanning process.
 func (e *ScanError) Unwrap() []error {
 	if e == nil {
 		return nil

@@ -1,0 +1,97 @@
+# This file contains all the predefined data labels by Cyral. It also serves as
+# example of the file format users can use to define their own custom labels.
+# To add a new predefined label, define it in this file along with its
+# classification rule Rego code in a '<label>.rego' file.
+#
+# File YAML structure:
+#
+# LABEL_NAME:
+#   description: Some description
+#   rule: label_name.rego
+#   tags:
+#     - tag1
+#     - tag2
+#
+# The classification rule Rego file name can be a relative path (to this file,
+# e.g. label_name.rego), or an absolute path (e.g. /path/to/label_name.rego).
+# Note that for predefined labels (like the ones defined by this specific
+# file!) the classification rule filename for a label MUST be a valid RELATIVE
+# path to the Rego file for the label, otherwise it will not be read correctly.
+
+ADDRESS:
+  description: Address
+  rule: address.rego
+  tags:
+    - PII
+
+AGE:
+  description: Age
+  rule: age.rego
+  tags:
+    - PII
+
+CCN:
+  description: Credit card number
+  rule: ccn.rego
+  tags:
+    - PCI
+
+CVV:
+  description: Credit card verification value (CVV)
+  rule: cvv.rego
+  tags:
+    - PCI
+
+DOB:
+  description: Date of birth
+  rule: dob.rego
+  tags:
+    - PII
+
+EMAIL:
+  description: Email address
+  rule: email.rego
+  tags:
+    - PII
+
+FIRST_NAME:
+  description: First name
+  rule: first_name.rego
+  tags:
+    - PII
+
+FULL_NAME:
+  description: Full name
+  rule: full_name.rego
+  tags:
+    - PII
+
+IP_ADDRESS:
+  description: IP address
+  rule: ip_address.rego
+  tags:
+    - PII
+
+LAST_NAME:
+  description: Last name
+  rule: last_name.rego
+  tags:
+    - PII
+
+PASSPORT:
+  description: Passport number
+  rule: passport.rego
+  tags:
+    - PII
+
+PHONE:
+  description: Phone number
+  rule: phone.rego
+  tags:
+    - PII
+
+SSN:
+  description: Social security number
+  rule: ssn.rego
+  tags:
+    - PII

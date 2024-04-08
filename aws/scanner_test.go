@@ -7,15 +7,19 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dynamodbTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	rdsTypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/aws/aws-sdk-go-v2/service/redshift"
 	redshiftTypes "github.com/aws/aws-sdk-go-v2/service/redshift/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/cyralinc/dmap/scan"
-	"github.com/cyralinc/dmap/testutil/mock"
 )
 
 type AWSScannerTestSuite struct {
@@ -159,19 +163,19 @@ func (s *AWSScannerTestSuite) TestScan() {
 		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
 			return &awsClient{
 				config: awsConfig,
-				rds: &mock.RDSClient{
+				rds: &mockRDSClient{
 					DBClusters:  s.dummyRDSClusters,
 					DBInstances: s.dummyRDSInstances,
 				},
-				redshift: &mock.RedshiftClient{
+				redshift: &mockRedshiftClient{
 					Clusters: s.dummyRedshiftClusters,
 				},
-				dynamodb: &mock.DynamoDBClient{
+				dynamodb: &mockDynamoDBClient{
 					TableNames: s.dummyDynamoDBTableNames,
 					Table:      s.dummyDynamoDBTable,
 					Tags:       s.dummyDynamoDBTags,
 				},
-				s3: &mock.S3Client{
+				s3: &mockS3Client{
 					Buckets: s.dummyS3Buckets,
 					Tags:    s.dummyS3Tags,
 				},
@@ -330,23 +334,23 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 		awsClientConstructor: func(awsConfig aws.Config) *awsClient {
 			return &awsClient{
 				config: awsConfig,
-				rds: &mock.RDSClient{
+				rds: &mockRDSClient{
 					Errors: map[string]error{
 						"DescribeDBClusters":  dummyError,
 						"DescribeDBInstances": dummyError,
 					},
 				},
-				redshift: &mock.RedshiftClient{
+				redshift: &mockRedshiftClient{
 					Errors: map[string]error{
 						"DescribeClusters": dummyError,
 					},
 				},
-				dynamodb: &mock.DynamoDBClient{
+				dynamodb: &mockDynamoDBClient{
 					Errors: map[string]error{
 						"ListTables": dummyError,
 					},
 				},
-				s3: &mock.S3Client{
+				s3: &mockS3Client{
 					Errors: map[string]error{
 						"ListBuckets":      dummyError,
 						"GetBucketTagging": dummyError,
@@ -369,4 +373,189 @@ func (s *AWSScannerTestSuite) TestScan_WithErrors() {
 		results.Repositories,
 	)
 	require.ErrorIs(s.T(), err, dummyError)
+}
+
+type mockRDSClient struct {
+	DBClusters  []rdsTypes.DBCluster
+	DBInstances []rdsTypes.DBInstance
+	Errors      map[string]error
+}
+
+func (m *mockRDSClient) DescribeDBClusters(
+	_ context.Context,
+	params *rds.DescribeDBClustersInput,
+	_ ...func(*rds.Options),
+) (*rds.DescribeDBClustersOutput, error) {
+	if m.Errors["DescribeDBClusters"] != nil {
+		return nil, m.Errors["DescribeDBClusters"]
+	}
+	if params.Marker == nil {
+		return &rds.DescribeDBClustersOutput{
+			DBClusters: []rdsTypes.DBCluster{
+				m.DBClusters[0],
+				m.DBClusters[1],
+			},
+			Marker: aws.String("2"),
+		}, nil
+	}
+	return &rds.DescribeDBClustersOutput{
+		DBClusters: []rdsTypes.DBCluster{
+			m.DBClusters[2],
+		},
+	}, nil
+}
+
+func (m *mockRDSClient) DescribeDBInstances(
+	_ context.Context,
+	params *rds.DescribeDBInstancesInput,
+	_ ...func(*rds.Options),
+) (*rds.DescribeDBInstancesOutput, error) {
+	if m.Errors["DescribeDBInstances"] != nil {
+		return nil, m.Errors["DescribeDBInstances"]
+	}
+	if params.Marker == nil {
+		return &rds.DescribeDBInstancesOutput{
+			DBInstances: []rdsTypes.DBInstance{
+				m.DBInstances[0],
+				m.DBInstances[1],
+			},
+			Marker: aws.String("2"),
+		}, nil
+	}
+	return &rds.DescribeDBInstancesOutput{
+		DBInstances: []rdsTypes.DBInstance{
+			m.DBInstances[2],
+		},
+	}, nil
+}
+
+type mockS3Client struct {
+	Buckets []s3Types.Bucket
+	Tags    []s3Types.Tag
+	Errors  map[string]error
+}
+
+func (m *mockS3Client) ListBuckets(
+	_ context.Context,
+	_ *s3.ListBucketsInput,
+	_ ...func(*s3.Options),
+) (*s3.ListBucketsOutput, error) {
+	if m.Errors["ListBuckets"] != nil {
+		return nil, m.Errors["ListBuckets"]
+	}
+
+	return &s3.ListBucketsOutput{
+		Buckets: m.Buckets,
+	}, nil
+}
+
+func (m *mockS3Client) GetBucketTagging(
+	_ context.Context,
+	_ *s3.GetBucketTaggingInput,
+	_ ...func(*s3.Options),
+) (*s3.GetBucketTaggingOutput, error) {
+	if m.Errors["GetBucketTagging"] != nil {
+		return nil, m.Errors["GetBucketTagging"]
+	}
+
+	return &s3.GetBucketTaggingOutput{
+		TagSet: m.Tags,
+	}, nil
+}
+
+type mockRedshiftClient struct {
+	Clusters []redshiftTypes.Cluster
+	Errors   map[string]error
+}
+
+func (m *mockRedshiftClient) DescribeClusters(
+	_ context.Context,
+	params *redshift.DescribeClustersInput,
+	_ ...func(*redshift.Options),
+) (*redshift.DescribeClustersOutput, error) {
+	if m.Errors["DescribeClusters"] != nil {
+		return nil, m.Errors["DescribeClusters"]
+	}
+	if params.Marker == nil {
+		return &redshift.DescribeClustersOutput{
+			Clusters: []redshiftTypes.Cluster{
+				m.Clusters[0],
+				m.Clusters[1],
+			},
+			Marker: aws.String("2"),
+		}, nil
+	}
+	return &redshift.DescribeClustersOutput{
+		Clusters: []redshiftTypes.Cluster{
+			m.Clusters[2],
+		},
+	}, nil
+}
+
+type mockDynamoDBClient struct {
+	TableNames []string
+	Table      map[string]*dynamodbTypes.TableDescription
+	Tags       []dynamodbTypes.Tag
+	Errors     map[string]error
+}
+
+func (m *mockDynamoDBClient) ListTables(
+	_ context.Context,
+	params *dynamodb.ListTablesInput,
+	_ ...func(*dynamodb.Options),
+) (*dynamodb.ListTablesOutput, error) {
+	if m.Errors["ListTables"] != nil {
+		return nil, m.Errors["ListTables"]
+	}
+	if params.ExclusiveStartTableName == nil {
+		return &dynamodb.ListTablesOutput{
+			TableNames: []string{
+				m.TableNames[0],
+				m.TableNames[1],
+			},
+			LastEvaluatedTableName: aws.String(m.TableNames[1]),
+		}, nil
+	}
+	return &dynamodb.ListTablesOutput{
+		TableNames: []string{
+			m.TableNames[2],
+		},
+	}, nil
+}
+
+func (m *mockDynamoDBClient) DescribeTable(
+	_ context.Context,
+	params *dynamodb.DescribeTableInput,
+	_ ...func(*dynamodb.Options),
+) (*dynamodb.DescribeTableOutput, error) {
+	if m.Errors["DescribeTable"] != nil {
+		return nil, m.Errors["DescribeTable"]
+	}
+	return &dynamodb.DescribeTableOutput{
+		Table: m.Table[*params.TableName],
+	}, nil
+}
+
+func (m *mockDynamoDBClient) ListTagsOfResource(
+	_ context.Context,
+	params *dynamodb.ListTagsOfResourceInput,
+	_ ...func(*dynamodb.Options),
+) (*dynamodb.ListTagsOfResourceOutput, error) {
+	if m.Errors["ListTagsOfResource"] != nil {
+		return nil, m.Errors["ListTagsOfResource"]
+	}
+	if params.NextToken == nil {
+		return &dynamodb.ListTagsOfResourceOutput{
+			Tags: []dynamodbTypes.Tag{
+				m.Tags[0],
+				m.Tags[1],
+			},
+			NextToken: aws.String("2"),
+		}, nil
+	}
+	return &dynamodb.ListTagsOfResourceOutput{
+		Tags: []dynamodbTypes.Tag{
+			m.Tags[2],
+		},
+	}, nil
 }

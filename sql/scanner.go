@@ -62,13 +62,16 @@ func NewScanner(ctx context.Context, cfg ScannerConfig) (*Scanner, error) {
 		lbls, err = classification.GetCustomLabels(cfg.LabelsYamlFilename)
 	}
 	if err != nil {
-		errMsg := fmt.Sprintf("error(s) loading data labels")
+		errMsg := "error(s) loading data labels"
 		// This error means that some labels weren't loaded due to having
 		// invalid classification rules. We only log a warning in this case,
 		// since we still want to proceed with the labels that were
 		// successfully loaded.
 		var errs classification.InvalidLabelsError
 		if errors.As(err, &errs) {
+			if len(lbls) == 0 {
+				return nil, fmt.Errorf("%s; no labels were loaded: %w", errMsg, err)
+			}
 			log.WithError(errs).Warnf("%s: some labels were not loaded", errMsg)
 		} else {
 			return nil, fmt.Errorf("%s: %w", errMsg, err)

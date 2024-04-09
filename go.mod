@@ -18,7 +18,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/lib/pq v1.10.9
 	github.com/open-policy-agent/opa v0.63.0
-	github.com/sijms/go-ora/v2 v2.8.10
+	github.com/sijms/go-ora/v2 v2.8.11
 	github.com/sirupsen/logrus v1.9.3
 	github.com/snowflakedb/gosnowflake v1.9.0
 	github.com/stretchr/testify v1.9.0

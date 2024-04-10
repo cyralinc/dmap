@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/gobwas/glob"
 
+	"github.com/cyralinc/dmap/internal/api"
 	"github.com/cyralinc/dmap/sql"
 )
 
@@ -28,6 +29,7 @@ type RepoScanCmd struct {
 	SampleSize    uint           `help:"Number of rows to sample from the repository (per table)." default:"5"`
 	Offset        uint           `help:"Offset to start sampling from." default:"0"`
 	LabelYamlFile string         `help:"Filename of the yaml file containing the custom set of data labels (e.g. /path/to/labels.yaml). If omitted, Dmap's predefined set of labels is used."`
+	Silent        bool           `help:"Do not print the results to stdout." short:"s"`
 }
 
 // GlobFlag is a kong.MapperValue implementation that represents a glob pattern.
@@ -52,7 +54,7 @@ func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 	return nil
 }
 
-func (cmd *RepoScanCmd) Run(_ *Globals) error {
+func (cmd *RepoScanCmd) Run(globals *Globals) error {
 	ctx := context.Background()
 	// Configure and instantiate the scanner.
 	cfg := sql.ScannerConfig{
@@ -81,12 +83,20 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	if err != nil {
 		return fmt.Errorf("error scanning repository: %w", err)
 	}
-	// Print the results to stdout.
-	jsonResults, err := json.MarshalIndent(results, "", "    ")
-	if err != nil {
-		return fmt.Errorf("error marshalling results: %w", err)
+	if !cmd.Silent {
+		// Print the results to stdout.
+		jsonResults, err := json.MarshalIndent(results, "", "    ")
+		if err != nil {
+			return fmt.Errorf("error marshalling results: %w", err)
+		}
+		fmt.Println(string(jsonResults))
 	}
-	fmt.Println(string(jsonResults))
-	// TODO: publish results to the API -ccampo 2024-04-03
+	// Publish the results to the Dmap API.
+	if globals.ClientID != "" {
+		client := api.NewDmapClient(globals.ApiBaseUrl, globals.ClientID, globals.ClientSecret)
+		if err := client.PublishRepoScanResults(ctx, cmd.ExternalID, results); err != nil {
+			return fmt.Errorf("error publishing results to Dmap API: %w", err)
+		}
+	}
 	return nil
 }

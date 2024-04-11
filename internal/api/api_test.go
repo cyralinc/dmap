@@ -43,7 +43,6 @@ func TestDmapClient_UpsertLabels_Success(t *testing.T) {
 				err := json.NewDecoder(r.Body).Decode(&l)
 				require.NoError(t, err)
 				require.Equal(t, lbls, l)
-				return
 			},
 		),
 	)
@@ -63,7 +62,6 @@ func TestDmapClient_UpsertLabels_ServerError(t *testing.T) {
 				require.Equal(t, http.MethodPut, r.Method)
 				require.Equal(t, dataLabelsPath, r.URL.Path)
 				w.WriteHeader(http.StatusInternalServerError)
-				return
 			},
 		),
 	)
@@ -116,7 +114,6 @@ func TestDmapClient_UpsertClassifications_Success(t *testing.T) {
 				err := json.NewDecoder(r.Body).Decode(&c)
 				require.NoError(t, err)
 				require.Equal(t, classifications, c)
-				return
 			},
 		),
 	)
@@ -138,7 +135,6 @@ func TestDmapClient_UpsertClassifications_ServerError(t *testing.T) {
 				path := strings.Replace(classificationsPath, "{repoExternalID}", url.QueryEscape(repoExternalID), 1)
 				require.Equal(t, path, r.URL.Path)
 				w.WriteHeader(http.StatusInternalServerError)
-				return
 			},
 		),
 	)
@@ -222,7 +218,6 @@ func TestDmapClientPublishRepoScanResults_Success(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, wantClassifications, c)
 				}
-				return
 			},
 		),
 	)
@@ -272,7 +267,6 @@ func TestDmapClientPublishRepoScanResults_UpsertLabelsServerError(t *testing.T) 
 				} else {
 					t.Fatalf("unexpected path %s", r.URL.Path)
 				}
-				return
 			},
 		),
 	)
@@ -339,7 +333,6 @@ func TestPublishRepoScanResults_UpsertClassificationsServerError(t *testing.T) {
 					}
 					w.WriteHeader(http.StatusInternalServerError)
 				}
-				return
 			},
 		),
 	)

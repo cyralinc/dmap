@@ -8,12 +8,9 @@ import (
 )
 
 type Globals struct {
-	LogLevel     logLevelFlag     `help:"Set the logging level (trace|debug|info|warn|error|fatal)" enum:"trace,debug,info,warn,error,fatal" default:"info"`
-	LogFormat    logFormatFlag    `help:"Set the logging format (text|json)" enum:"text,json" default:"text"`
-	Version      kong.VersionFlag `name:"version" help:"Print version information and quit"`
-	ApiBaseUrl   string           `help:"Base URL of the Dmap API." default:"https://api.dmap.cyral.io"`
-	ClientID     string           `help:"API client ID to access the Dmap API."`
-	ClientSecret string           `help:"API client secret to access the Dmap API."` //#nosec G101 -- false positive
+	LogLevel  logLevelFlag     `help:"Set the logging level (trace|debug|info|warn|error|fatal)" enum:"trace,debug,info,warn,error,fatal" default:"info"`
+	LogFormat logFormatFlag    `help:"Set the logging format (text|json)" enum:"text,json" default:"text"`
+	Version   kong.VersionFlag `name:"version" help:"Print version information and quit"`
 }
 
 type logLevelFlag string
@@ -58,9 +55,7 @@ type CLI struct {
 var version string
 
 func main() {
-	cli := CLI{
-		Globals: Globals{},
-	}
+	cli := CLI{Globals: Globals{}}
 	ctx := kong.Parse(
 		&cli,
 		kong.Name("dmap"),

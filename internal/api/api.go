@@ -162,7 +162,7 @@ func (c *DmapClient) PublishRepoScanResults(
 		repoExternalID,
 		Classifications{Classifications: classifications},
 	); err != nil {
-		return fmt.Errorf("error upserting classifications for repo external ID %s: %w", repoExternalID, err)
+		return fmt.Errorf("error upserting classifications for repo %s: %w", repoExternalID, err)
 	}
 	return nil
 }

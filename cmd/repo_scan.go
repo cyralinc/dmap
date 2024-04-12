@@ -10,24 +10,38 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/gobwas/glob"
 
+	"github.com/cyralinc/dmap/internal/api"
 	"github.com/cyralinc/dmap/sql"
 )
 
 type RepoScanCmd struct {
 	Type          string         `help:"Type of repository to connect to (postgres|mysql|oracle|sqlserver|snowflake|redshift|denodo)." enum:"postgres,mysql,oracle,sqlserver,snowflake,redshift,denodo" required:""`
-	ExternalID    string         `help:"External ID of the repository." required:""`
 	Host          string         `help:"Hostname of the repository." required:""`
 	Port          uint16         `help:"Port of the repository." required:""`
 	User          string         `help:"Username to connect to the repository." required:""`
 	Password      string         `help:"Password to connect to the repository." required:""`
+	RepoID        string         `help:"The ID of the repository used by the Dmap service to identify the data repository. For RDS or Redshift, this is the ARN of the database. Optional, but required to publish the scan results Dmap service."`
+	ClientID      string         `help:"API client ID to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."`
+	ClientSecret  string         `help:"API client secret to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."` //#nosec G101 -- false positive
+	ApiBaseUrl    string         `help:"Base URL of the Dmap API." default:"https://api.dmap.cyral.io"`
 	Database      string         `help:"Name of the database to connect to. If not specified, the default database is used (if possible)."`
 	Advanced      map[string]any `help:"Advanced configuration for the repository, semicolon separated (e.g. key1=value1;key2=value2). Please see the documentation for details on how to provide this argument for specific repository types."`
 	IncludePaths  GlobFlag       `help:"List of glob patterns to include when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)." default:"*"`
 	ExcludePaths  GlobFlag       `help:"List of glob patterns to exclude when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)."`
 	MaxOpenConns  uint           `help:"Maximum number of open connections to the database." default:"10"`
 	SampleSize    uint           `help:"Number of rows to sample from the repository (per table)." default:"5"`
-	Offset        uint           `help:"Offset to start sampling from." default:"0"`
-	LabelYamlFile string         `help:"Filename of the yaml file containing the custom set of data labels (e.g. /path/to/labels.yaml). If omitted, Dmap's predefined set of labels is used."`
+	Offset        uint           `help:"Offset to start sampling each table from." default:"0"`
+	LabelYamlFile string         `help:"Filename of the yaml file containing the custom set of data labels (e.g. /path/to/labels.yaml). If omitted, a set of predefined labels is used."`
+	Silent        bool           `help:"Do not print the results to stdout." short:"s"`
+}
+
+func (cmd *RepoScanCmd) Validate() error {
+	if cmd.RepoID != "" {
+		if cmd.ClientID == "" || cmd.ClientSecret == "" {
+			return fmt.Errorf("repo-id was provided, but client-id and client-secret are also required to publish results to Dmap")
+		}
+	}
+	return nil
 }
 
 // GlobFlag is a kong.MapperValue implementation that represents a glob pattern.
@@ -81,12 +95,20 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	if err != nil {
 		return fmt.Errorf("error scanning repository: %w", err)
 	}
-	// Print the results to stdout.
-	jsonResults, err := json.MarshalIndent(results, "", "    ")
-	if err != nil {
-		return fmt.Errorf("error marshalling results: %w", err)
+	if !cmd.Silent {
+		// Print the results to stdout.
+		jsonResults, err := json.MarshalIndent(results, "", "    ")
+		if err != nil {
+			return fmt.Errorf("error marshalling results: %w", err)
+		}
+		fmt.Println(string(jsonResults))
 	}
-	fmt.Println(string(jsonResults))
-	// TODO: publish results to the API -ccampo 2024-04-03
+	// Publish the results to the Dmap API.
+	if cmd.RepoID != "" {
+		client := api.NewDmapClient(cmd.ApiBaseUrl, cmd.ClientID, cmd.ClientSecret)
+		if err := client.PublishRepoScanResults(ctx, cmd.RepoID, results); err != nil {
+			return fmt.Errorf("error publishing results to Dmap API: %w", err)
+		}
+	}
 	return nil
 }

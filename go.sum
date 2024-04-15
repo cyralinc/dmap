@@ -71,8 +71,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.5 h1:f9RyWNtS8oH7cZ
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.5/go.mod h1:h5CoMZV2VF297/VLhRhO1WF+XYWOzXo+4HsObA4HjBQ=
 github.com/aws/aws-sdk-go-v2/service/rds v1.77.1 h1:RatrfyDgfeXDmYw1gq5IR5tXXf1C9/enPtXWXn5kufE=
 github.com/aws/aws-sdk-go-v2/service/rds v1.77.1/go.mod h1:Rw15qGaGWu3jO0dOz7JyvdOEjgae//YrJxVWLYGynvg=
-github.com/aws/aws-sdk-go-v2/service/redshift v1.43.5 h1:qiwrbGdDKuD0OD2hxNezyiu17AXJtC3UyLpwx0FA3Ds=
-github.com/aws/aws-sdk-go-v2/service/redshift v1.43.5/go.mod h1:8ldsMsikORLj0GZUozSvbQdctrumAPYhizmj/3AAATI=
+github.com/aws/aws-sdk-go-v2/service/redshift v1.44.0 h1:j18lTPPqe+qlapn1R8//+ujvXdplku8V41xzBNNLtn0=
+github.com/aws/aws-sdk-go-v2/service/redshift v1.44.0/go.mod h1:8ldsMsikORLj0GZUozSvbQdctrumAPYhizmj/3AAATI=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1 h1:6cnno47Me9bRykw9AEv9zkXE+5or7jz8TsskTTccbgc=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1/go.mod h1:qmdkIIAC+GCLASF7R2whgNrJADz0QZPX+Seiw/i4S3o=
 github.com/aws/aws-sdk-go-v2/service/sso v1.20.5 h1:vN8hEbpRnL7+Hopy9dzmRle1xmDc7o8tmY0klsr175w=

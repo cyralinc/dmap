@@ -32,6 +32,8 @@ jobs:
         with:
           push: true
           tags: public.ecr.aws/cyral/dmap:latest,public.ecr.aws/cyral/dmap:${{ github.ref_name }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
 
   # Build and release the Dmap CLI binaries.
   goreleaser:

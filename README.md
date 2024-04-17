@@ -6,7 +6,8 @@
 
 Dmap is a free and open-source tool to assess your data security posture in AWS. 
 It allows you to quickly find information about your data repositories from 
-different AWS account environments, across multiple regions.
+different AWS account environments, across multiple regions, as well as scan 
+those repositories for sensitive data patterns.
 
 It currently supports different data repository types from across AWS services, 
 including:
@@ -16,9 +17,22 @@ including:
 - DynamoDB
 - DocumentDB
 
-## Usage
+## Command Line Interface (CLI)
 
-### Requirements
+### Installation
+
+#### Verification
+
+```bash
+sha256sum -c dmap_<version>_sha256sums.txt
+gpg --verify dmap_<version>_sha256sums.txt.sig dmap_<version>_sha256sums.txt
+```
+
+## Go Library
+
+### Usage
+
+#### Requirements
 
 The Dmap library requires a set of read-only AWS service permissions, so that 
 it's able to find existing data repositories from these services. IAM credentials 
@@ -34,14 +48,14 @@ with permissions for the following actions are required:
 
 Make sure to use proper AWS credentials that contain the permissions above.
 
-### Import
+#### Import
 
 To import the Dmap library into your project, use the `go get` command below:
 ```go
 go get github.com/cyralinc/dmap
 ```
 
-### Scan
+#### Scan
 
 To use the Dmap library to find information about your existing data repositories, 
 follow the steps below:

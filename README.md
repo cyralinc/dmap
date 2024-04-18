@@ -18,7 +18,8 @@ data.
 
 We define a data repository as a collection of data that is stored in a specific
 location in the cloud. For example, an Amazon RDS database, a Redshift cluster,
-or a DynamoDB table are all examples of Dmap data repositories.
+or a DynamoDB table are all examples of Dmap data repositories. Think of it as a
+more generic term for a data store or database.
 
 We also define a cloud environment as a collection of cloud resources that are
 managed by a specific cloud provider. For example, an AWS account is a cloud
@@ -30,11 +31,12 @@ Dmap will provide you with all the fields in the data repository that contain
 sensitive data.
 
 We use Open Policy Agent's (OPA) [Rego API](https://pkg.go.dev/github.com/open-policy-agent/opa/rego) 
-to define policies (termed "data labels") that can be used to classify sensitive
-data in data repositories. Dmap provides a set of [predefined data labels](classification/labels) 
-that can be used to classify sensitive data in data repositories. You can also
-define your own data labels if desired. Data labels contain a name, description,
-and tags that can be used to group labels, e.g. "PII", "PCI", "HIPAA", etc.
+to define rules that can be used to classify sensitive data in data repositories
+and assign them appropriate labels (such as CCN, SSN etc). Dmap provides a set 
+of [predefined data labels](classification/labels) that can be used to classify 
+sensitive data in data repositories. You can also define your own data labels if
+desired. Each data label has a name, description, and a set of tags that can be
+used to group labels, e.g. "PII", "PCI", "HIPAA", etc.
 
 ## Command Line Interface (CLI)
 
@@ -44,7 +46,13 @@ labels used for classification, as well as the fields in the data repository
 that were classified as containing sensitive data. For example:
 
 ```bash
-$ dmap repo-scan --type postgres --database postgres --host ... --port ...  --user ... --password ...
+$ dmap repo-scan \
+  --type postgres \
+  --host ... \
+  --port ... \
+  --user ... \
+  --password ...
+
 {
     "labels": [
         {
@@ -61,8 +69,8 @@ $ dmap repo-scan --type postgres --database postgres --host ... --port ...  --us
             "attributePath": [
                 "postgres",
                 "public",
-                "doctors",
-                "address2"
+                "patients",
+                "address"
             ],
             "labels": [
                 "ADDRESS"
@@ -77,10 +85,17 @@ Optionally, by providing the `--repo-id`, `--client-id`, and `--client-secret`
 flags, the results can be sent to the Dmap web service for further analysis and
 reporting.
 
+Use the `--help` flag to see all available commands and options, e.g.:
+
+```bash
+$ dmap --help
+$ dmap repo-scan --help
+```
+
 ### Installation
 
-The Dmap CLI can be installed as a native binary, a Docker image, or from 
-source. Each approach is described below.
+The Dmap CLI can be installed as a native binary, a Docker image, or directly 
+from source. Each approach is described below.
 
 #### Release Binaries
 
@@ -105,6 +120,7 @@ signed with Cyral's GPG key (fingerprint
 file, e.g.:
 
 ```bash
+# Replace with the desired version, e.g. v0.1.0.
 # Assuming the binary/binaries and checksums are in the same directory.
 sha256sum -c dmap_<version>_sha256sums.txt
 gpg --verify dmap_<version>_sha256sums.txt.sig dmap_<version>_sha256sums.txt
@@ -112,13 +128,20 @@ gpg --verify dmap_<version>_sha256sums.txt.sig dmap_<version>_sha256sums.txt
 
 #### Docker
 
-You can run the image directly as a container, e.g.:
+Docker images for the Dmap CLI are available on the public Cyral ECR. Tags for
+each version of Dmap are released, as well as a `latest` tag. The image can be 
+run as a container, e.g.:
 
 ```bash
-docker run --rm public.ecr.aws/cyral/dmap:latest
+# Optionally replace `latest` with the desired version, e.g. v0.1.0.
+docker run --rm public.ecr.aws/cyral/dmap:latest repo-scan \
+  --type ... \
+  --database ... \
+  --host ... \
+  --port ... \
+  --user ... \
+  --password ...
 ```
-
-Tags for each version of Dmap are released, as well as a `latest` tag.
 
 #### From Source
 
@@ -155,9 +178,10 @@ and the following data repository types from across AWS services including:
 
 #### Requirements
 
-The Dmap library requires a set of read-only AWS service permissions, so that 
-it's able to find existing data repositories from these services. IAM credentials 
-with permissions for the following actions are required: 
+The Dmap library requires a set of read-only AWS service permissions to perform
+and environment scan, so that it's able to find existing data repositories from
+these services. IAM credentials with permissions for the following actions are
+required: 
 
 - `rds:DescribeDBClusters`
 - `rds:DescribeDBInstances`
@@ -300,7 +324,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error scanning repository: %v", err)
 	}
-    // Print the results to stdout.
+    // Print the results to stdout as JSON.
     jsonResults, err := json.MarshalIndent(results, "", "    ")
     if err != nil {
         log.Fatalf("error marshalling results: %v", err)

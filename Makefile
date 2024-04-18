@@ -24,3 +24,6 @@ opa-lint:
 
 opa-test:
 	opa test ./classification/labels/*.rego -v
+
+docker-build:
+	docker build --build-arg VERSION="$(git describe --tags --always)" -t dmap .

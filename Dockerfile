@@ -1,5 +1,7 @@
 FROM golang:1.22 as build
 
+ARG VERSION="latest"
+
 # Set destination for COPY.
 WORKDIR /app
 
@@ -11,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Build.
-RUN CGO_ENABLED=0 go build -ldflags="-X main.version=$(git describe --tags --always)" -o dmap cmd/*.go
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$VERSION" -o dmap cmd/*.go
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

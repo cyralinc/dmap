@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	repoScanPath        = "/v1/reposcans"
 	dataLabelsPath      = "/v1/datalabels"
 	classificationsPath = "/v1/classifications"
 )
@@ -89,7 +90,7 @@ func (c *DmapClient) CreateRepoScan(ctx context.Context, repoScan RepoScan) (str
 		SetContext(ctx).
 		SetBody(repoScan).
 		SetResult(&id).
-		Post("/v1/reposcans")
+		Post(repoScanPath)
 	if err != nil || resp.IsError() {
 		if err == nil {
 			err = RequestError{

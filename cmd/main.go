@@ -52,7 +52,7 @@ type CLI struct {
 
 // version is the application version. It is intended to be set at compile time
 // via the linker (e.g. -ldflags="-X main.version=...").
-var version string
+var version = "dev"
 
 func main() {
 	cli := CLI{Globals: Globals{}}

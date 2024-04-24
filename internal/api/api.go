@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"net/url"
 
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
@@ -13,18 +12,25 @@ import (
 
 const (
 	dataLabelsPath      = "/v1/datalabels"
-	classificationsPath = "/v1/repositories/{repoExternalID}/classifications"
+	classificationsPath = "/v1/classifications"
 )
+
+type RepoScan struct {
+	RepoExternalId string `json:"repoExternalId"`
+	Agent          string `json:"agent"`
+}
 
 // Classifications is the Dmap API representation of a set of data
 // classifications.
 type Classifications struct {
+	RepoScanId      string           `json:"repoScanId"`
 	Classifications []Classification `json:"classifications"`
 }
 
 // Labels is the Dmap API representation of a set of data labels.
 type Labels struct {
-	Labels []Label `json:"labels"`
+	RepoScanId string  `json:"repoScanId"`
+	Labels     []Label `json:"labels"`
 }
 
 // Classification is the Dmap API representation of a single data
@@ -72,6 +78,31 @@ func NewDmapClient(baseURL, clientID, clientSecret string) *DmapClient {
 	return &DmapClient{client: client}
 }
 
+// CreateRepoScan creates a new repository scan in the Dmap API with the given
+// repository scan details. If an error occurs, it is returned. The ID of the
+// created repository scan is returned if the request is successful.
+func (c *DmapClient) CreateRepoScan(ctx context.Context, repoScan RepoScan) (string, error) {
+	id := struct {
+		ID string `json:"id"`
+	}{}
+	resp, err := c.client.R().
+		SetContext(ctx).
+		SetBody(repoScan).
+		SetResult(&id).
+		Post("/v1/reposcans")
+	if err != nil || resp.IsError() {
+		if err == nil {
+			err = RequestError{
+				StatusCode: resp.StatusCode(),
+				Status:     resp.Status(),
+				Body:       resp.String(),
+			}
+		}
+		return "", fmt.Errorf("HTTP request error creating repo scan: %w", err)
+	}
+	return id.ID, nil
+}
+
 // UpsertLabels upserts the given labels to the Dmap API. All existing labels
 // are replaced with the given labels. If an error occurs, it is returned.
 func (c *DmapClient) UpsertLabels(ctx context.Context, labels Labels) error {
@@ -104,9 +135,6 @@ func (c *DmapClient) UpsertClassifications(
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetBody(classifications).
-		// We need to escape the repoExternalID because it may contain reserved
-		// characters like slashes.
-		SetPathParams(map[string]string{"repoExternalID": url.QueryEscape(repoExternalID)}).
 		Put(classificationsPath)
 	if err != nil || resp.IsError() {
 		if err == nil {
@@ -131,9 +159,13 @@ func (c *DmapClient) UpsertClassifications(
 // the Dmap API if an error occurs.
 func (c *DmapClient) PublishRepoScanResults(
 	ctx context.Context,
-	repoExternalID string,
+	agent, repoExternalID string,
 	results *scan.RepoScanResults,
 ) error {
+	repoScanId, err := c.CreateRepoScan(ctx, RepoScan{Agent: agent, RepoExternalId: repoExternalID})
+	if err != nil {
+		return fmt.Errorf("error creating repo scan: %w", err)
+	}
 	labels := make([]Label, len(results.Labels))
 	for i, label := range results.Labels {
 		labels[i] = Label{
@@ -142,7 +174,7 @@ func (c *DmapClient) PublishRepoScanResults(
 			Tags:        label.Tags,
 		}
 	}
-	if err := c.UpsertLabels(ctx, Labels{Labels: labels}); err != nil {
+	if err := c.UpsertLabels(ctx, Labels{RepoScanId: repoScanId, Labels: labels}); err != nil {
 		return fmt.Errorf("error upserting labels: %w", err)
 	}
 	classifications := make([]Classification, 0, len(results.Classifications))
@@ -160,7 +192,7 @@ func (c *DmapClient) PublishRepoScanResults(
 	if err := c.UpsertClassifications(
 		ctx,
 		repoExternalID,
-		Classifications{Classifications: classifications},
+		Classifications{RepoScanId: repoScanId, Classifications: classifications},
 	); err != nil {
 		return fmt.Errorf("error upserting classifications for repo %s: %w", repoExternalID, err)
 	}

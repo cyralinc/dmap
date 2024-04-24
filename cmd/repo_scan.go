@@ -106,7 +106,8 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	// Publish the results to the Dmap API.
 	if cmd.RepoID != "" {
 		client := api.NewDmapClient(cmd.ApiBaseUrl, cmd.ClientID, cmd.ClientSecret)
-		if err := client.PublishRepoScanResults(ctx, cmd.RepoID, results); err != nil {
+		agent := "dmap-cli_" + version
+		if err := client.PublishRepoScanResults(ctx, agent, cmd.RepoID, results); err != nil {
 			return fmt.Errorf("error publishing results to Dmap API: %w", err)
 		}
 	}

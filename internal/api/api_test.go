@@ -16,6 +16,9 @@ import (
 	"github.com/cyralinc/dmap/scan"
 )
 
+// TODO: tests for CreateRepoScan -ccampo 2024-04-23
+// TODO: add repoScanId where required -ccampo 2024-04-23
+
 func TestDmapClient_UpsertLabels_Success(t *testing.T) {
 	clientID := "clientID"
 	clientSecret := "clientSecret"

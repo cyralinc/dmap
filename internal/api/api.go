@@ -11,9 +11,11 @@ import (
 )
 
 const (
+	repoScanIdKey       = "repoScanId"
 	repoScanPath        = "/v1/reposcans"
-	dataLabelsPath      = "/v1/datalabels"
-	classificationsPath = "/v1/classifications"
+	repoScanIdPath      = repoScanPath + "/{" + repoScanIdKey + "}"
+	labelsPath          = repoScanIdPath + "/labels"
+	classificationsPath = repoScanIdPath + "/classifications"
 )
 
 type RepoScan struct {
@@ -24,14 +26,12 @@ type RepoScan struct {
 // Classifications is the Dmap API representation of a set of data
 // classifications.
 type Classifications struct {
-	RepoScanId      string           `json:"repoScanId"`
 	Classifications []Classification `json:"classifications"`
 }
 
 // Labels is the Dmap API representation of a set of data labels.
 type Labels struct {
-	RepoScanId string  `json:"repoScanId"`
-	Labels     []Label `json:"labels"`
+	Labels []Label `json:"labels"`
 }
 
 // Classification is the Dmap API representation of a single data
@@ -106,11 +106,12 @@ func (c *DmapClient) CreateRepoScan(ctx context.Context, repoScan RepoScan) (str
 
 // UpsertLabels upserts the given labels to the Dmap API. All existing labels
 // are replaced with the given labels. If an error occurs, it is returned.
-func (c *DmapClient) UpsertLabels(ctx context.Context, labels Labels) error {
+func (c *DmapClient) UpsertLabels(ctx context.Context, repoScanId string, labels Labels) error {
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetBody(labels).
-		Put(dataLabelsPath)
+		SetPathParam(repoScanIdKey, repoScanId).
+		Put(labelsPath)
 	if err != nil || resp.IsError() {
 		if err == nil {
 			err = RequestError{
@@ -119,7 +120,7 @@ func (c *DmapClient) UpsertLabels(ctx context.Context, labels Labels) error {
 				Body:       resp.String(),
 			}
 		}
-		return fmt.Errorf("HTTP request error upserting labels: %w", err)
+		return fmt.Errorf("HTTP request error upserting labels for repo scan ID %s: %w", repoScanId, err)
 	}
 	return nil
 }
@@ -130,12 +131,13 @@ func (c *DmapClient) UpsertLabels(ctx context.Context, labels Labels) error {
 // it is returned.
 func (c *DmapClient) UpsertClassifications(
 	ctx context.Context,
-	repoExternalID string,
+	repoScanId string,
 	classifications Classifications,
 ) error {
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetBody(classifications).
+		SetPathParam(repoScanIdKey, repoScanId).
 		Put(classificationsPath)
 	if err != nil || resp.IsError() {
 		if err == nil {
@@ -146,8 +148,8 @@ func (c *DmapClient) UpsertClassifications(
 			}
 		}
 		return fmt.Errorf(
-			"HTTP request error upserting classifications for repo external ID %s: %w",
-			repoExternalID,
+			"HTTP request error upserting classifications for repo scan ID %s: %w",
+			repoScanId,
 			err,
 		)
 	}
@@ -175,7 +177,7 @@ func (c *DmapClient) PublishRepoScanResults(
 			Tags:        label.Tags,
 		}
 	}
-	if err := c.UpsertLabels(ctx, Labels{RepoScanId: repoScanId, Labels: labels}); err != nil {
+	if err := c.UpsertLabels(ctx, repoScanId, Labels{Labels: labels}); err != nil {
 		return fmt.Errorf("error upserting labels: %w", err)
 	}
 	classifications := make([]Classification, 0, len(results.Classifications))
@@ -192,10 +194,10 @@ func (c *DmapClient) PublishRepoScanResults(
 	}
 	if err := c.UpsertClassifications(
 		ctx,
-		repoExternalID,
-		Classifications{RepoScanId: repoScanId, Classifications: classifications},
+		repoScanId,
+		Classifications{Classifications: classifications},
 	); err != nil {
-		return fmt.Errorf("error upserting classifications for repo %s: %w", repoExternalID, err)
+		return fmt.Errorf("error upserting classifications: %w", err)
 	}
 	return nil
 }

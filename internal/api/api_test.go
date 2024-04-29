@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -17,8 +16,8 @@ import (
 )
 
 func TestDmapClient_CreateRepoScan_Success(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	agent := "dmap-test"
 	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
 	wantRepoScan := RepoScan{
@@ -49,8 +48,8 @@ func TestDmapClient_CreateRepoScan_Success(t *testing.T) {
 }
 
 func TestDmapClient_CreateRepoScan_ServerError(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	svr := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -79,15 +78,16 @@ func TestDmapClient_CreateRepoScan_ServerError(t *testing.T) {
 }
 
 func TestDmapClient_CreateRepoScan_Error(t *testing.T) {
-	c := NewDmapClient("invalid", "clientID", "clientSecret")
+	c := NewDmapClient("invalid", "dummyClientId", "dummyClientSecret")
 	id, err := c.CreateRepoScan(context.Background(), RepoScan{})
 	require.Error(t, err)
 	require.Empty(t, id)
 }
 
 func TestDmapClient_UpsertLabels_Success(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
+	repoScanId := "66284f0bf29b853e7db81bd4"
 	lbls := Labels{
 		Labels: []Label{
 			{
@@ -107,7 +107,8 @@ func TestDmapClient_UpsertLabels_Success(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
 				require.Equal(t, http.MethodPut, r.Method)
-				require.Equal(t, dataLabelsPath, r.URL.Path)
+				path := strings.Replace(labelsPath, "{"+repoScanIdKey+"}", repoScanId, 1)
+				require.Equal(t, path, r.URL.Path)
 				var l Labels
 				err := json.NewDecoder(r.Body).Decode(&l)
 				require.NoError(t, err)
@@ -117,26 +118,28 @@ func TestDmapClient_UpsertLabels_Success(t *testing.T) {
 	)
 	defer svr.Close()
 	c := NewDmapClient(svr.URL, clientID, clientSecret)
-	err := c.UpsertLabels(context.Background(), lbls)
+	err := c.UpsertLabels(context.Background(), repoScanId, lbls)
 	require.NoError(t, err)
 }
 
 func TestDmapClient_UpsertLabels_ServerError(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
+	repoScanId := "66284f0bf29b853e7db81bd4"
 	svr := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
 				require.Equal(t, http.MethodPut, r.Method)
-				require.Equal(t, dataLabelsPath, r.URL.Path)
+				path := strings.Replace(labelsPath, "{"+repoScanIdKey+"}", repoScanId, 1)
+				require.Equal(t, path, r.URL.Path)
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 		),
 	)
 	defer svr.Close()
 	c := NewDmapClient(svr.URL, clientID, clientSecret)
-	err := c.UpsertLabels(context.Background(), Labels{})
+	err := c.UpsertLabels(context.Background(), repoScanId, Labels{})
 	var reqErr RequestError
 	require.ErrorAs(t, err, &reqErr)
 	expectedErr := RequestError{
@@ -151,15 +154,16 @@ func TestDmapClient_UpsertLabels_ServerError(t *testing.T) {
 }
 
 func TestDmapClient_UpsertLabels_Error(t *testing.T) {
-	c := NewDmapClient("invalid", "clientID", "clientSecret")
-	err := c.UpsertLabels(context.Background(), Labels{})
+	repoScanId := "66284f0bf29b853e7db81bd4"
+	c := NewDmapClient("invalid", "dummyClientId", "dummyClientSecret")
+	err := c.UpsertLabels(context.Background(), repoScanId, Labels{})
 	require.Error(t, err)
 }
 
 func TestDmapClient_UpsertClassifications_Success(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
-	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
+	repoScanId := "66284f0bf29b853e7db81bd4"
 	classifications := Classifications{
 		Classifications: []Classification{
 			{
@@ -177,7 +181,7 @@ func TestDmapClient_UpsertClassifications_Success(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
 				require.Equal(t, http.MethodPut, r.Method)
-				path := strings.Replace(classificationsPath, "{repoExternalID}", url.QueryEscape(repoExternalID), 1)
+				path := strings.Replace(classificationsPath, "{"+repoScanIdKey+"}", repoScanId, 1)
 				require.Equal(t, path, r.URL.Path)
 				var c Classifications
 				err := json.NewDecoder(r.Body).Decode(&c)
@@ -188,20 +192,20 @@ func TestDmapClient_UpsertClassifications_Success(t *testing.T) {
 	)
 	defer svr.Close()
 	c := NewDmapClient(svr.URL, clientID, clientSecret)
-	err := c.UpsertClassifications(context.Background(), repoExternalID, classifications)
+	err := c.UpsertClassifications(context.Background(), repoScanId, classifications)
 	require.NoError(t, err)
 }
 
 func TestDmapClient_UpsertClassifications_ServerError(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
-	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
+	repoScanId := "66284f0bf29b853e7db81bd4"
 	svr := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
 				require.Equal(t, http.MethodPut, r.Method)
-				path := strings.Replace(classificationsPath, "{repoExternalID}", url.QueryEscape(repoExternalID), 1)
+				path := strings.Replace(classificationsPath, "{"+repoScanIdKey+"}", repoScanId, 1)
 				require.Equal(t, path, r.URL.Path)
 				w.WriteHeader(http.StatusInternalServerError)
 			},
@@ -209,7 +213,7 @@ func TestDmapClient_UpsertClassifications_ServerError(t *testing.T) {
 	)
 	defer svr.Close()
 	c := NewDmapClient(svr.URL, clientID, clientSecret)
-	err := c.UpsertClassifications(context.Background(), repoExternalID, Classifications{})
+	err := c.UpsertClassifications(context.Background(), repoScanId, Classifications{})
 	var reqErr RequestError
 	require.ErrorAs(t, err, &reqErr)
 	expectedErr := RequestError{
@@ -224,14 +228,15 @@ func TestDmapClient_UpsertClassifications_ServerError(t *testing.T) {
 }
 
 func TestDmapClient_UpsertClassifications_Error(t *testing.T) {
-	c := NewDmapClient("invalid", "clientID", "clientSecret")
-	err := c.UpsertClassifications(context.Background(), "repoExternalID", Classifications{})
+	repoScanId := "66284f0bf29b853e7db81bd4"
+	c := NewDmapClient("invalid", "dummyClientId", "dummyClientSecret")
+	err := c.UpsertClassifications(context.Background(), repoScanId, Classifications{})
 	require.Error(t, err)
 }
 
 func TestDmapClientPublishRepoScanResults_Success(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	agent := "dmap-test"
 	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
 	results := scan.RepoScanResults{
@@ -251,6 +256,7 @@ func TestDmapClientPublishRepoScanResults_Success(t *testing.T) {
 			},
 		},
 	}
+	wantRepoScanId := "66284f0bf29b853e7db81bd4"
 	wantRepoScan := RepoScan{
 		Agent:          agent,
 		RepoExternalId: repoExternalID,
@@ -276,27 +282,33 @@ func TestDmapClientPublishRepoScanResults_Success(t *testing.T) {
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
-				switch r.URL.Path {
-				case repoScanPath:
+				if r.URL.Path == repoScanPath {
 					require.Equal(t, http.MethodPost, r.Method)
 					var rs RepoScan
 					err := json.NewDecoder(r.Body).Decode(&rs)
 					require.NoError(t, err)
 					require.Equal(t, wantRepoScan, rs)
-				case dataLabelsPath:
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = fmt.Fprintf(w, `{"id":"%s"}`, wantRepoScanId)
+				} else {
 					require.Equal(t, http.MethodPut, r.Method)
-					var l Labels
-					err := json.NewDecoder(r.Body).Decode(&l)
-					require.NoError(t, err)
-					require.Equal(t, wantLbls, l)
-				case classificationsPath:
-					require.Equal(t, http.MethodPut, r.Method)
-					var c Classifications
-					err := json.NewDecoder(r.Body).Decode(&c)
-					require.NoError(t, err)
-					require.Equal(t, wantClassifications, c)
-				default:
-					t.Fatalf("unexpected path %s", r.URL.Path)
+					if strings.HasSuffix(r.URL.Path, "/labels") {
+						path := strings.Replace(labelsPath, "{"+repoScanIdKey+"}", wantRepoScanId, 1)
+						require.Equal(t, path, r.URL.Path)
+						var l Labels
+						err := json.NewDecoder(r.Body).Decode(&l)
+						require.NoError(t, err)
+						require.Equal(t, wantLbls, l)
+					} else if strings.HasSuffix(r.URL.Path, "/classifications") {
+						path := strings.Replace(classificationsPath, "{"+repoScanIdKey+"}", wantRepoScanId, 1)
+						require.Equal(t, path, r.URL.Path)
+						var c Classifications
+						err := json.NewDecoder(r.Body).Decode(&c)
+						require.NoError(t, err)
+						require.Equal(t, wantClassifications, c)
+					} else {
+						t.Fatalf("unexpected path %s", r.URL.Path)
+					}
 				}
 			},
 		),
@@ -308,8 +320,8 @@ func TestDmapClientPublishRepoScanResults_Success(t *testing.T) {
 }
 
 func TestDmapClientPublishRepoScanResults_Error(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	agent := "dmap-test"
 	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
 	c := NewDmapClient("", clientID, clientSecret)
@@ -318,8 +330,8 @@ func TestDmapClientPublishRepoScanResults_Error(t *testing.T) {
 }
 
 func TestDmapClientPublishRepoScanResults_UpsertLabelsServerError(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	agent := "dmap-test"
 	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
 	results := scan.RepoScanResults{
@@ -339,6 +351,7 @@ func TestDmapClientPublishRepoScanResults_UpsertLabelsServerError(t *testing.T) 
 			},
 		},
 	}
+	wantRepoScanId := "66284f0bf29b853e7db81bd4"
 	wantRepoScan := RepoScan{
 		Agent:          agent,
 		RepoExternalId: repoExternalID,
@@ -347,18 +360,21 @@ func TestDmapClientPublishRepoScanResults_UpsertLabelsServerError(t *testing.T) 
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
-				switch r.URL.Path {
-				case repoScanPath:
+				if r.URL.Path == repoScanPath {
 					require.Equal(t, http.MethodPost, r.Method)
 					var rs RepoScan
 					err := json.NewDecoder(r.Body).Decode(&rs)
 					require.NoError(t, err)
 					require.Equal(t, wantRepoScan, rs)
-				case dataLabelsPath:
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = fmt.Fprintf(w, `{"id":"%s"}`, wantRepoScanId)
+				} else {
 					require.Equal(t, http.MethodPut, r.Method)
-					w.WriteHeader(http.StatusInternalServerError)
-				default:
-					t.Fatalf("unexpected path %s", r.URL.Path)
+					if strings.HasSuffix(r.URL.Path, "/labels") {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						t.Fatalf("unexpected path %s", r.URL.Path)
+					}
 				}
 			},
 		),
@@ -380,8 +396,8 @@ func TestDmapClientPublishRepoScanResults_UpsertLabelsServerError(t *testing.T) 
 }
 
 func TestPublishRepoScanResults_UpsertClassificationsServerError(t *testing.T) {
-	clientID := "clientID"
-	clientSecret := "clientSecret"
+	clientID := "dummyClientId"
+	clientSecret := "dummyClientSecret"
 	agent := "dmap-test"
 	repoExternalID := "arn:aws:dynamodb:us-east-1:123456789012:table/test"
 	results := scan.RepoScanResults{
@@ -401,6 +417,7 @@ func TestPublishRepoScanResults_UpsertClassificationsServerError(t *testing.T) {
 			},
 		},
 	}
+	wantRepoScanId := "66284f0bf29b853e7db81bd4"
 	wantRepoScan := RepoScan{
 		Agent:          agent,
 		RepoExternalId: repoExternalID,
@@ -418,24 +435,28 @@ func TestPublishRepoScanResults_UpsertClassificationsServerError(t *testing.T) {
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				requireBasicAuth(t, r, clientID, clientSecret)
-				switch r.URL.Path {
-				case repoScanPath:
+				if r.URL.Path == repoScanPath {
 					require.Equal(t, http.MethodPost, r.Method)
 					var rs RepoScan
 					err := json.NewDecoder(r.Body).Decode(&rs)
 					require.NoError(t, err)
 					require.Equal(t, wantRepoScan, rs)
-				case dataLabelsPath:
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = fmt.Fprintf(w, `{"id":"%s"}`, wantRepoScanId)
+				} else {
 					require.Equal(t, http.MethodPut, r.Method)
-					var l Labels
-					err := json.NewDecoder(r.Body).Decode(&l)
-					require.NoError(t, err)
-					require.Equal(t, wantLbls, l)
-				case classificationsPath:
-					require.Equal(t, http.MethodPut, r.Method)
-					w.WriteHeader(http.StatusInternalServerError)
-				default:
-					t.Fatalf("unexpected path %s", r.URL.Path)
+					if strings.HasSuffix(r.URL.Path, "/labels") {
+						path := strings.Replace(labelsPath, "{"+repoScanIdKey+"}", wantRepoScanId, 1)
+						require.Equal(t, path, r.URL.Path)
+						var l Labels
+						err := json.NewDecoder(r.Body).Decode(&l)
+						require.NoError(t, err)
+						require.Equal(t, wantLbls, l)
+					} else if strings.HasSuffix(r.URL.Path, "/classifications") {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						t.Fatalf("unexpected path %s", r.URL.Path)
+					}
 				}
 			},
 		),

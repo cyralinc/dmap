@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Build.
-RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$VERSION" -o dmap cmd/*.go
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=$VERSION" -o dmap cmd/dmap/*.go
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

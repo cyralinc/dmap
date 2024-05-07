@@ -149,7 +149,7 @@ Requires Go 1.21 or later.
 
 ```bash
 # Replace <version> with the desired version, e.g. v0.1.0, or the branch, e.g. main.
-go install github.com/cyralinc/dmap/cmd@<version>
+go install github.com/cyralinc/dmap/cmd/dmap@<version>
 ```
 
 ## Go Library

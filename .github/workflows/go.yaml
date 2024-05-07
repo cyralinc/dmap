@@ -26,6 +26,6 @@ jobs:
           args: ./...
 
       - name: Run golangci-lint Linter
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v6
         with:
           version: v1.54

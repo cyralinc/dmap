@@ -1,6 +1,6 @@
 builds:
   - id: dmap
-    main: ./cmd/
+    main: ./cmd/dmap/
     mod_timestamp: "{{ .CommitTimestamp }}"
     flags:
       - -trimpath

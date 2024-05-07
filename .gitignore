@@ -248,6 +248,7 @@ modules.xml
 /bin
 /service/cmd/bin/
 /cmd/bin
+/cmd/dmap/bin
 /service/bin/
 __debug_bin
 

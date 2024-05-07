@@ -149,7 +149,7 @@ Requires Go 1.21 or later.
 
 ```bash
 # Replace <version> with the desired version, e.g. v0.1.0, or the branch, e.g. main.
-go install github.com/cyralinc/dmap/cmd@<version>
+go install github.com/cyralinc/dmap/cmd/dmap@<version>
 ```
 
 ## Go Library
@@ -224,9 +224,9 @@ package main
 
 import (
 	"context"
-    "fmt"
-
-    "github.com/cyralinc/dmap/aws"
+	"fmt"
+	
+	"github.com/cyralinc/dmap/aws"
 )
 
 func main() {
@@ -297,7 +297,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-    "fmt"
+	"fmt"
 	"log"
 	
 	"github.com/cyralinc/dmap/sql"
@@ -323,13 +323,13 @@ func main() {
 	results, err := scanner.Scan(ctx)
 	if err != nil {
 		log.Fatalf("error scanning repository: %v", err)
+	} 
+	// Print the results to stdout as JSON. 
+	jsonResults, err := json.MarshalIndent(results, "", "    ")
+	if err != nil {
+		log.Fatalf("error marshalling results: %v", err)
 	}
-    // Print the results to stdout as JSON.
-    jsonResults, err := json.MarshalIndent(results, "", "    ")
-    if err != nil {
-        log.Fatalf("error marshalling results: %v", err)
-    }
-    fmt.Println(string(jsonResults))
+	fmt.Println(string(jsonResults))
 }
 ```
 

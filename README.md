@@ -106,8 +106,8 @@ platforms. The appropriate binary for your platform can be downloaded from the
 ```bash
 # Replace with the desired version, e.g. v0.1.0
 VERSION="v0.1.0"
-curl -OL "https://github.com/cyralinc/dmap/releases/download/$VERSION/dmap_$VERSION_darwin_amd64.zip"
-unzip dmap_$VERSION_darwin_amd64.zip
+curl -OL "https://github.com/cyralinc/dmap/releases/download/${VERSION}/dmap_${VERSION}_darwin_amd64.zip"
+unzip dmap_${VERSION}_darwin_amd64.zip
 ```
 
 Optionally, put the binary in a location in your `PATH` for easy use.

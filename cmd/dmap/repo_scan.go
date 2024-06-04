@@ -19,7 +19,8 @@ type RepoScanCmd struct {
 	Host          string         `help:"Hostname of the repository." required:""`
 	Port          uint16         `help:"Port of the repository." required:""`
 	User          string         `help:"Username to connect to the repository." required:""`
-	Password      string         `help:"Password to connect to the repository." required:""`
+	Password      string         `help:"Password to connect to the repository."`
+	PasswordStdin bool           `help:"Read the password from stdin."`
 	RepoID        string         `help:"The ID of the repository used by the Dmap service to identify the data repository. For RDS or Redshift, this is the ARN of the database. Optional, but required to publish the scan results Dmap service."`
 	ClientID      string         `help:"API client ID to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."`
 	ClientSecret  string         `help:"API client secret to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."` //#nosec G101 -- false positive
@@ -68,6 +69,12 @@ func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 
 func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	ctx := context.Background()
+	password := cmd.Password
+	if cmd.PasswordStdin {
+		if _, err := fmt.Scanln(&password); err != nil {
+			return fmt.Errorf("error reading password from stdin: %w", err)
+		}
+	}
 	// Configure and instantiate the scanner.
 	cfg := sql.ScannerConfig{
 		RepoType: cmd.Type,
@@ -75,7 +82,7 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 			Host:         cmd.Host,
 			Port:         cmd.Port,
 			User:         cmd.User,
-			Password:     cmd.Password,
+			Password:     password,
 			Database:     cmd.Database,
 			MaxOpenConns: cmd.MaxOpenConns,
 			Advanced:     cmd.Advanced,

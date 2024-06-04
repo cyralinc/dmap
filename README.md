@@ -92,6 +92,14 @@ $ dmap --help
 $ dmap repo-scan --help
 ```
 
+It is recommended to pass secure values via environment variables, e.g.:
+
+```bash
+# Read password from stdin and export as environment variable.
+$ read -rs PASSWORD && export PASSWORD
+$ dmap repo-scan --password $PASSWORD # ... other flags ...
+``` 
+
 ### Installation
 
 The Dmap CLI can be installed as a native binary, a Docker image, or directly 
@@ -153,6 +161,8 @@ go install github.com/cyralinc/dmap/cmd/dmap@<version>
 ```
 
 ## Go Library
+
+[API Reference Docs](https://cyralinc.github.io/dmap/)
 
 The Dmap Go library provides APIs to scan cloud environments to discover data
 repositories in those environments, as well as scan individual data repositories
@@ -337,8 +347,50 @@ Additional repository types can be added by implementing the [`sql.Repository`](
 interface and registering it in a [`sql.Registry`](sql/registry.go). See the
 [`sql`](sql) package for more details.
 
-See the [`classification`](classification) package for more details on how to
-define and use data labels for classifying sensitive data.
+#### Custom Data Labels
+
+The Dmap library allows you to define custom data labels for classifying
+sensitive data in data repositories. Each data label has a name, description,
+and a set of tags that can be used to group labels, e.g. "PII", "PCI", "HIPAA", 
+etc.
+
+Labels are defined as OPA Rego policies and are loaded at runtime by the 
+repository scanner. The metadata for the labels is defined in a [`labels.yaml`](classification/labels/labels.yaml)
+file. This can be passed to the scanner via the `LabelsYamlFilename` field in
+the `ScannerConfig` struct, e.g.:
+
+```Go
+cfg := sql.ScannerConfig{
+	LabelsYamlFilename: "/path/to/labels.yaml", 
+	// Other fields...
+}
+scanner, err := sql.NewScanner(context.Background(), cfg)
+```
+
+If using the Dmap CLI, the `--label-yaml-file` flag can be used to specify the
+path to the labels YAML file, e.g.:
+
+```bash
+$ dmap repo-scan \
+  --label-yaml-file "/path/to/labels.yaml" \
+  # Other flags...
+```
+
+See the [`labels`](classification/labels) package for more details on how to
+define and use data labels for classifying sensitive data. Additionally, see the
+[`labels.yaml`](classification/labels/labels.yaml) file for an example of the
+file format and how to define custom data labels.
+
+#### Connection String Parameters
+
+The database connection string is currently hardcoded for each repository type
+(see https://github.com/cyralinc/dmap/issues/101 for discussion about possible
+future improvements). For Postgres repositories, the connection string is
+configurable using [environment variables](https://pkg.go.dev/github.com/lib/pq#hdr-Connection_String_Parameters).
+If you need to set additional connection parameters for other repository types,
+you will need to modify the code or provide a new `Repository` implementation.
+Please open and issue and/or pull request if you have any suggestions or
+contributions.
 
 ## Resources
 

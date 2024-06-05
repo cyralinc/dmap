@@ -95,8 +95,8 @@ $ dmap repo-scan --help
 It is recommended to pass secure values via environment variables, e.g.:
 
 ```bash
-# Read password from stdin and export as environment variable.
-$ read -rs PASSWORD && export PASSWORD
+# Read password from stdin
+$ read -rs PASSWORD
 $ dmap repo-scan --password $PASSWORD # ... other flags ...
 ``` 
 

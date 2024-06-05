@@ -21,9 +21,6 @@ type RepoScanCmd struct {
 	User          string         `help:"Username to connect to the repository." required:""`
 	Password      string         `help:"Password to connect to the repository." required:""`
 	RepoID        string         `help:"The ID of the repository used by the Dmap service to identify the data repository. For RDS or Redshift, this is the ARN of the database. Optional, but required to publish the scan results Dmap service."`
-	ClientID      string         `help:"API client ID to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."`
-	ClientSecret  string         `help:"API client secret to access the Dmap API. Optional, but required to publish the scan results to the Dmap service."` //#nosec G101 -- false positive
-	ApiBaseUrl    string         `help:"Base URL of the Dmap API." default:"https://api.dmap.cyral.io"`
 	Database      string         `help:"Name of the database to connect to. If not specified, the default database is used (if possible)."`
 	Advanced      map[string]any `help:"Advanced configuration for the repository, semicolon separated (e.g. key1=value1;key2=value2). Please see the documentation for details on how to provide this argument for specific repository types."`
 	IncludePaths  GlobFlag       `help:"List of glob patterns to include when introspecting the database(s), semicolon separated (e.g. foo*;bar*;*.baz)." default:"*"`
@@ -37,7 +34,7 @@ type RepoScanCmd struct {
 
 func (cmd *RepoScanCmd) Validate() error {
 	if cmd.RepoID != "" {
-		if cmd.ClientID == "" || cmd.ClientSecret == "" {
+		if globals.ClientID == "" || globals.ClientSecret == "" {
 			return fmt.Errorf("repo-id was provided, but client-id and client-secret are also required to publish results to Dmap")
 		}
 	}
@@ -66,7 +63,7 @@ func (g GlobFlag) Decode(ctx *kong.DecodeContext) error {
 	return nil
 }
 
-func (cmd *RepoScanCmd) Run(_ *Globals) error {
+func (cmd *RepoScanCmd) Run(globals *Globals) error {
 	ctx := context.Background()
 	// Configure and instantiate the scanner.
 	cfg := sql.ScannerConfig{
@@ -105,7 +102,7 @@ func (cmd *RepoScanCmd) Run(_ *Globals) error {
 	}
 	// Publish the results to the Dmap API.
 	if cmd.RepoID != "" {
-		client := api.NewDmapClient(cmd.ApiBaseUrl, cmd.ClientID, cmd.ClientSecret)
+		client := api.NewDmapClient(globals.ApiBaseUrl, globals.ClientID, globals.ClientSecret)
 		agent := "dmap-cli_" + version
 		if err := client.PublishRepoScanResults(ctx, agent, cmd.RepoID, results); err != nil {
 			return fmt.Errorf("error publishing results to Dmap API: %w", err)

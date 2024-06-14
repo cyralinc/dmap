@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.18
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.32.8
 	github.com/aws/aws-sdk-go-v2/service/rds v1.79.6
-	github.com/aws/aws-sdk-go-v2/service/redshift v1.44.6
+	github.com/aws/aws-sdk-go-v2/service/redshift v1.44.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12
 	github.com/denisenkom/go-mssqldb v0.12.3

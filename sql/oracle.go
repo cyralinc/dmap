@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	// Oracle DB driver
-	_ "github.com/sijms/go-ora/v2"
+	"github.com/sijms/go-ora/v2"
 )
 
 const (
@@ -52,14 +52,7 @@ func NewOracleRepository(cfg RepoConfig) (*OracleRepository, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse oracle config: %w", err)
 	}
-	connStr := fmt.Sprintf(
-		`oracle://%s:%s@%s:%d/%s`,
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		oracleCfg.ServiceName,
-	)
+	connStr := go_ora.BuildUrl(cfg.Host, int(cfg.Port), oracleCfg.ServiceName, cfg.User, cfg.Password, nil)
 	generic, err := NewGenericRepository(RepoTypeOracle, cfg.Database, connStr, cfg.MaxOpenConns)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate generic sql repository: %w", err)

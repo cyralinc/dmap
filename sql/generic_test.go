@@ -37,7 +37,7 @@ func Test_Introspect_IsSuccessful(t *testing.T) {
 		AddRow("schema1", "table2", "column1", "integer").
 		AddRow("schema2", "table1", "column1", "date")
 
-	mock.ExpectQuery("SELECT (.+) FROM information_schema.columns WHERE (.+)").
+	mock.ExpectQuery("SELECT (.+) FROM INFORMATION_SCHEMA.COLUMNS WHERE (.+)").
 		WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -125,7 +125,7 @@ func Test_Introspect_QueryError(t *testing.T) {
 
 	expectedErr := errors.New("dummy error")
 
-	mock.ExpectQuery("SELECT (.+) FROM information_schema.columns WHERE (.+)").
+	mock.ExpectQuery("SELECT (.+) FROM INFORMATION_SCHEMA.COLUMNS WHERE (.+)").
 		WillReturnError(expectedErr)
 
 	ctx := context.Background()
@@ -163,7 +163,7 @@ func Test_Introspect_RowError(t *testing.T) {
 		AddRow("schema1", "table1", "column1", "varchar").
 		RowError(0, expectedErr)
 
-	mock.ExpectQuery("SELECT (.+) FROM information_schema.columns WHERE (.+)").
+	mock.ExpectQuery("SELECT (.+) FROM INFORMATION_SCHEMA.COLUMNS WHERE (.+)").
 		WillReturnRows(rows)
 
 	ctx := context.Background()
@@ -205,7 +205,7 @@ func Test_Introspect_Filtered(t *testing.T) {
 		AddRow("schema3", "table1", "column2", "decimal").
 		AddRow("schema3", "table2", "column1", "integer")
 
-	mock.ExpectQuery("SELECT (.+) FROM information_schema.columns WHERE (.+)").
+	mock.ExpectQuery("SELECT (.+) FROM INFORMATION_SCHEMA.COLUMNS WHERE (.+)").
 		WillReturnRows(rows)
 
 	ctx := context.Background()

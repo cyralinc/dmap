@@ -18,7 +18,7 @@ const (
 		"column_name, " +
 		"data_type " +
 		"FROM " +
-		"information_schema.columns " +
+		"INFORMATION_SCHEMA.COLUMNS " +
 		"WHERE " +
 		"table_schema NOT IN " +
 		"(" +

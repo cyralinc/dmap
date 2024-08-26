@@ -6,17 +6,17 @@ import rego.v1
 # entrypoint: true
 output[k] := v if {
 	some k in object.keys(input)
-	v := classify(k, input[k])
+	v := classify(k)
 }
 
-default classify(_, _) := false
+default classify(_) := false
 
-classify(key, _) if {
+classify(key) if {
 	contains(lower(key), "last")
 	contains(lower(key), "name")
 }
 
-classify(key, _) if {
+classify(key) if {
 	contains(lower(key), "sur")
 	contains(lower(key), "name")
 }

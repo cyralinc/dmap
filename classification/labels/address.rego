@@ -6,33 +6,33 @@ import rego.v1
 # entrypoint: true
 output[k] := v if {
 	some k in object.keys(input)
-	v := classify(k, input[k])
+	v := classify(k)
 }
 
-default classify(_, _) := false
+default classify(_) := false
 
-classify(key, _) if {
+classify(key) if {
 	lower(key) == "state"
 }
 
-classify(key, _) if {
+classify(key) if {
 	lower(key) == "zip"
 }
 
-classify(key, _) if {
+classify(key) if {
 	contains(lower(key), "zip")
 	contains(lower(key), "code")
 }
 
-classify(key, _) if {
+classify(key) if {
 	contains(lower(key), "postal")
 	contains(lower(key), "code")
 }
 
-classify(key, _) if {
+classify(key) if {
 	regex.match(`\A.*address.*\z`, lower(key))
 }
 
-classify(key, _) if {
+classify(key) if {
 	regex.match(`\Astreet.*\z`, lower(key))
 }

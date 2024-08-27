@@ -209,6 +209,13 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 				wg.Add(1)
 				// Launch a goroutine to sample the table.
 				go func(ctx context.Context, meta *TableMetadata) {
+					defer func() {
+						if sema != nil {
+							// Release the slot once the goroutine is done.
+							sema.Release(1)
+						}
+						wg.Done()
+					}()
 					sampleCtx := ctx
 					if s.config.RepoConfig.QueryTimeout > 0 {
 						var cancel context.CancelFunc
@@ -225,11 +232,6 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 					case <-ctx.Done():
 					case out <- sampleAndErr{sample: sample, err: err}:
 					}
-					if sema != nil {
-						// Release the slot once the goroutine is done.
-						sema.Release(1)
-					}
-					wg.Done()
 				}(ctx, tableMeta)
 			}
 		}

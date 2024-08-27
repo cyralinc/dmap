@@ -2,6 +2,7 @@ package sql
 
 import (
 	"fmt"
+	"time"
 )
 
 // RepoConfig is the necessary configuration to connect to a data sql.
@@ -18,6 +19,13 @@ type RepoConfig struct {
 	Database string
 	// MaxOpenConns is the maximum number of open connections to the database.
 	MaxOpenConns uint
+	// MaxParallelDbs is the maximum number of parallel databases scanned at
+	// once.
+	MaxParallelDbs uint
+	// MaxConcurrency is the maximum number of concurrent query goroutines.
+	MaxConcurrency uint
+	// QueryTimeout is the maximum time a query can run before being cancelled.
+	QueryTimeout time.Duration
 	// Advanced is a map of advanced configuration options.
 	Advanced map[string]any
 }

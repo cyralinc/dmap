@@ -324,9 +324,9 @@ func TestScanner_sampleAllDbs_Successful_TwoDatabases(t *testing.T) {
 		},
 	}
 	repo := NewMockRepository(t)
-	repo.EXPECT().ListDatabases(ctx).Return(dbs, nil)
-	repo.EXPECT().Introspect(ctx, mock.Anything).Return(&meta, nil)
-	repo.EXPECT().SampleTable(ctx, mock.Anything).Return(sample, nil)
+	repo.EXPECT().ListDatabases(mock.Anything).Return(dbs, nil)
+	repo.EXPECT().Introspect(mock.Anything, mock.Anything).Return(&meta, nil)
+	repo.EXPECT().SampleTable(mock.Anything, mock.Anything).Return(sample, nil)
 	repo.EXPECT().Close().Return(nil)
 	repoType := "mock"
 	reg := NewRegistry()
@@ -356,8 +356,8 @@ func TestScanner_sampleAllDbs_IntrospectError(t *testing.T) {
 	dbs := []string{"db1", "db2"}
 	introspectErr := errors.New("introspect error")
 	repo := NewMockRepository(t)
-	repo.EXPECT().ListDatabases(ctx).Return(dbs, nil)
-	repo.EXPECT().Introspect(ctx, mock.Anything).Return(nil, introspectErr)
+	repo.EXPECT().ListDatabases(mock.Anything).Return(dbs, nil)
+	repo.EXPECT().Introspect(mock.Anything, mock.Anything).Return(nil, introspectErr)
 	repo.EXPECT().Close().Return(nil)
 	repoType := "mock"
 	reg := NewRegistry()
@@ -407,9 +407,9 @@ func TestScanner_sampleAllDbs_SampleError(t *testing.T) {
 	}
 	sampleErr := errors.New("sample error")
 	repo := NewMockRepository(t)
-	repo.EXPECT().ListDatabases(ctx).Return(dbs, nil)
-	repo.EXPECT().Introspect(ctx, mock.Anything).Return(&meta, nil)
-	repo.EXPECT().SampleTable(ctx, mock.Anything).Return(Sample{}, sampleErr)
+	repo.EXPECT().ListDatabases(mock.Anything).Return(dbs, nil)
+	repo.EXPECT().Introspect(mock.Anything, mock.Anything).Return(&meta, nil)
+	repo.EXPECT().SampleTable(mock.Anything, mock.Anything).Return(Sample{}, sampleErr)
 	repo.EXPECT().Close().Return(nil)
 	repoType := "mock"
 	reg := NewRegistry()
@@ -467,10 +467,10 @@ func TestScanner_sampleAllDbs_TwoDatabases_OneSampleError(t *testing.T) {
 	}
 	sampleErr := errors.New("sample error")
 	repo := NewMockRepository(t)
-	repo.EXPECT().ListDatabases(ctx).Return(dbs, nil)
-	repo.EXPECT().Introspect(ctx, mock.Anything).Return(&meta, nil)
-	repo.EXPECT().SampleTable(ctx, mock.Anything).Return(sample, nil).Once()
-	repo.EXPECT().SampleTable(ctx, mock.Anything).Return(Sample{}, sampleErr).Once()
+	repo.EXPECT().ListDatabases(mock.Anything).Return(dbs, nil)
+	repo.EXPECT().Introspect(mock.Anything, mock.Anything).Return(&meta, nil)
+	repo.EXPECT().SampleTable(mock.Anything, mock.Anything).Return(sample, nil).Once()
+	repo.EXPECT().SampleTable(mock.Anything, mock.Anything).Return(Sample{}, sampleErr).Once()
 	repo.EXPECT().Close().Return(nil)
 	repoType := "mock"
 	reg := NewRegistry()

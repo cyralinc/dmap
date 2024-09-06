@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 
 	log "github.com/sirupsen/logrus"
 
@@ -240,7 +241,7 @@ func newDbHandle(repoType, connStr string, maxOpenConns uint) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(int(maxOpenConns))
+	db.SetMaxOpenConns(intFromUint(maxOpenConns))
 	return db, nil
 }
 
@@ -284,4 +285,11 @@ func matchPathPatterns(database, schema, table string, patterns []glob.Glob) boo
 		}
 	}
 	return false
+}
+
+func intFromUint(n uint) int {
+	if n > math.MaxInt {
+		return math.MaxInt
+	}
+	return int(n)
 }

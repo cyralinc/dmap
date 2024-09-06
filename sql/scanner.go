@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"strings"
 	"sync"
 
@@ -192,7 +193,7 @@ func (s *Scanner) sampleDb(ctx context.Context, db string) ([]Sample, error) {
 		// concurrently.
 		var sema *semaphore.Weighted
 		if s.config.RepoConfig.MaxConcurrency > 0 {
-			sema = semaphore.NewWeighted(int64(s.config.RepoConfig.MaxConcurrency))
+			sema = semaphore.NewWeighted(int64FromUint(s.config.RepoConfig.MaxConcurrency))
 		}
 		for _, schemaMeta := range meta.Schemas {
 			for _, tableMeta := range schemaMeta.Tables {
@@ -317,7 +318,7 @@ func (s *Scanner) sampleAllDbs(ctx context.Context) ([]Sample, error) {
 		// concurrently.
 		var sema *semaphore.Weighted
 		if s.config.RepoConfig.MaxParallelDbs > 0 {
-			sema = semaphore.NewWeighted(int64(s.config.RepoConfig.MaxParallelDbs))
+			sema = semaphore.NewWeighted(int64FromUint(s.config.RepoConfig.MaxParallelDbs))
 		}
 		for _, db := range dbs {
 			if sema != nil {
@@ -438,4 +439,11 @@ func (s *Scanner) classifySamples(
 // repository instance with the database name set to that specific database.
 func (s *Scanner) newRepository(ctx context.Context, cfg RepoConfig) (Repository, error) {
 	return s.config.Registry.NewRepository(ctx, s.config.RepoType, cfg)
+}
+
+func int64FromUint(n uint) int64 {
+	if n > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(n)
 }

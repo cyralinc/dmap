@@ -1,0 +1,8 @@
+# Configure's Regal's behavior. See: https://docs.styra.com/regal#configuration
+rules:
+  style:
+    line-length:
+        level: ignore
+  idiomatic:
+    directory-package-mismatch:
+        level: ignore

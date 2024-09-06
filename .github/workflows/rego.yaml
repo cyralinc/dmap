@@ -21,7 +21,7 @@ jobs:
       - name: Lint
         # Disable the line-length check for now, as it's too strict: it flags
         # the long regexes in various classification policies.
-        run: regal lint --format=github --disable=line-length ./classification/labels/
+        run: regal lint --format=github ./classification/labels/
 
       - name: Setup OPA
         uses: open-policy-agent/setup-opa@v2

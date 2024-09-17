@@ -6,10 +6,10 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/alecthomas/kong v0.9.0
 	github.com/aws/aws-sdk-go-v2 v1.30.5
-	github.com/aws/aws-sdk-go-v2/config v1.27.33
+	github.com/aws/aws-sdk-go-v2/config v1.27.34
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.32
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.34.9
-	github.com/aws/aws-sdk-go-v2/service/rds v1.82.4
+	github.com/aws/aws-sdk-go-v2/service/rds v1.83.0
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.46.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.61.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.7

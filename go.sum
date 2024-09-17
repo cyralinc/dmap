@@ -41,8 +41,8 @@ github.com/aws/aws-sdk-go-v2 v1.30.5 h1:mWSRTwQAb0aLE17dSzztCVJWI9+cRMgqebndjwDy
 github.com/aws/aws-sdk-go-v2 v1.30.5/go.mod h1:CT+ZPWXbYrci8chcARI3OmI/qgd+f6WtuLOoaIA8PR0=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4 h1:70PVAiL15/aBMh5LThwgXdSQorVr91L127ttckI9QQU=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4/go.mod h1:/MQxMqci8tlqDH+pjmoLu1i0tbWCUP1hhyMRuFxpQCw=
-github.com/aws/aws-sdk-go-v2/config v1.27.33 h1:Nof9o/MsmH4oa0s2q9a0k7tMz5x/Yj5k06lDODWz3BU=
-github.com/aws/aws-sdk-go-v2/config v1.27.33/go.mod h1:kEqdYzRb8dd8Sy2pOdEbExTTF5v7ozEXX0McgPE7xks=
+github.com/aws/aws-sdk-go-v2/config v1.27.34 h1:5sLceuETg/215nLtY/QIVB2O6cosS0iC/Tx5oyqUhbw=
+github.com/aws/aws-sdk-go-v2/config v1.27.34/go.mod h1:kEqdYzRb8dd8Sy2pOdEbExTTF5v7ozEXX0McgPE7xks=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.32 h1:7Cxhp/BnT2RcGy4VisJ9miUPecY+lyE9I8JvcZofn9I=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.32/go.mod h1:P5/QMF3/DCHbXGEGkdbilXHsyTBX5D3HSwcrSc9p20I=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.13 h1:pfQ2sqNpMVK6xz2RbqLEL0GH87JOwSxPV2rzm8Zsb74=
@@ -69,8 +69,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.19 h1:rfprUlsd
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.19/go.mod h1:SCWkEdRq8/7EK60NcvvQ6NXKuTcchAD4ROAsC37VEZE=
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.17 h1:u+EfGmksnJc/x5tq3A+OD7LrMbSSR/5TrKLvkdy/fhY=
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.17/go.mod h1:VaMx6302JHax2vHJWgRo+5n9zvbacs3bLU/23DNQrTY=
-github.com/aws/aws-sdk-go-v2/service/rds v1.82.4 h1:Go6suRegLmIpQiuiTNyUUyxYrhzbrliD9wD0ZN65hlQ=
-github.com/aws/aws-sdk-go-v2/service/rds v1.82.4/go.mod h1:zNFNa99yH2j3zzqZgt3Atu197K1UkE+1sfigpi5+eWo=
+github.com/aws/aws-sdk-go-v2/service/rds v1.83.0 h1:+U1tSypAU8Qw3omyheDsPr53NPeG+ecrx165dxaoD+s=
+github.com/aws/aws-sdk-go-v2/service/rds v1.83.0/go.mod h1:zNFNa99yH2j3zzqZgt3Atu197K1UkE+1sfigpi5+eWo=
 github.com/aws/aws-sdk-go-v2/service/redshift v1.46.8 h1:UBqd0JhsXpCDUf/7ulfzYTx4t+OoJ/iOT7+RefurHis=
 github.com/aws/aws-sdk-go-v2/service/redshift v1.46.8/go.mod h1:UdcfC9kA4bn3cdUdFYVCeXZcoPka6WNzbYyRAX/Vpy0=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.61.2 h1:Kp6PWAlXwP1UvIflkIP6MFZYBNDCa4mFCGtxrpICVOg=

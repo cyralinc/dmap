@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.36.2
 	github.com/aws/aws-sdk-go-v2/service/rds v1.87.2
 	github.com/aws/aws-sdk-go-v2/service/redshift v1.49.1
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.32.2
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/go-resty/resty/v2 v2.15.3
